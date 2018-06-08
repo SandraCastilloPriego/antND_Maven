@@ -33,8 +33,8 @@ import java.util.Map;
 import javax.swing.JTextArea;
 import org.sbml.libsbml.KineticLaw;
 import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.LocalParameter;
 import org.sbml.libsbml.Model;
+import org.sbml.libsbml.Parameter;
 import org.sbml.libsbml.Reaction;
 import org.sbml.libsbml.SBMLDocument;
 import org.sbml.libsbml.Species;
@@ -152,11 +152,16 @@ public class SimpleBasicDataset implements Dataset {
 
        
         try {
-            ListOf listOfReactions = model.getListOfReactions();
+            // For eac reaction in the model, a Node is created in the graph
+            
+            ListOf listOfReactions = model.getListOfReactions();            
             for (int i = 0; i < model.getNumReactions(); i++) {
-            Reaction r = (Reaction) listOfReactions.get(i);
+                Reaction r = (Reaction) listOfReactions.get(i);
+                
+                //Node is created
                 Node reactionNode = new Node(r.getId(), r.getName());
                 this.setPosition(reactionNode);
+               
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
                 // read bounds to know the direction of the edges
@@ -205,6 +210,7 @@ public class SimpleBasicDataset implements Dataset {
             System.out.println(e.toString());
         }
         this.graph = g;
+        System.out.println(g.getNumberOfNodes());
         return g;
     }
 
@@ -224,11 +230,11 @@ public class SimpleBasicDataset implements Dataset {
         Double flux = null;
         if (r.getKineticLaw() != null) {
             KineticLaw law = r.getKineticLaw();
-            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+            Parameter lbound = law.getParameter("LOWER_BOUND");
             lb = lbound.getValue();
-            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+            Parameter ubound = law.getParameter("UPPER_BOUND");
             ub = ubound.getValue();
-            LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");            
+            Parameter rflux = law.getParameter("FLUX_VALUE");            
             flux = rflux.getValue();            
         }
         if (flux != null) {
