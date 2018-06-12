@@ -26,7 +26,6 @@ import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
 import com.vtt.antnd.util.GUIUtils;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.SpringLayout;
-import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.SparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.VisualizationImageServer;
@@ -77,30 +76,32 @@ import javax.swing.JColorChooser;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections15.Transformer;
+import org.apache.commons.collections15.functors.ChainedTransformer;
 import org.freehep.graphics2d.VectorGraphics;
 import org.freehep.graphicsio.svg.SVGGraphics2D;
 import org.sbml.libsbml.KineticLaw;
 import org.sbml.libsbml.ListOf;
 import org.sbml.libsbml.LocalParameter;
 import org.sbml.libsbml.Model;
+import org.sbml.libsbml.Parameter;
 import org.sbml.libsbml.Reaction;
 import org.sbml.libsbml.Species;
 import org.sbml.libsbml.SpeciesReference;
-
 
 /**
  *
  * @author scsandra
  */
 public class PrintPaths implements KeyListener, GraphMouseListener, ActionListener,
-    ChangeListener  {
+        ChangeListener {
 
     private final Model m;
-   // private TransFrame transFrame = null;
+    // private TransFrame transFrame = null;
     private final List<String> selectedNode;
     private edu.uci.ics.jung.graph.Graph<String, String> g;
     Map<String, Color> clusters;
@@ -115,9 +116,11 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
     Color selectedColor;
     Map<String, Color> colors;
     String cofactors;
+    JTextArea area;
+
     public PrintPaths(Model m) {
         CofactorConfParameters conf = new CofactorConfParameters();
-        this.cofactors= conf.getParameter(CofactorConfParameters.cofactors).getValue();
+        this.cofactors = conf.getParameter(CofactorConfParameters.cofactors).getValue();
         this.m = m;
         this.clusters = new HashMap<>();
         this.selectedNode = new ArrayList<>();
@@ -130,18 +133,18 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         List<Node> nodes = graph.getNodes();
         List<Edge> edges = graph.getEdges();
         colors = new HashMap<>();
-        layout = new SpringLayout<>(g);        
+        layout = new SpringLayout<>(g);
         //layout = new KKLayout(g);       
         layout.setSize(new Dimension(2400, 1900)); // sets the initial size of the space
         vv = new VisualizationViewer<>(layout);
 
-        System.out.println(nodes.size());    
+        System.out.println(nodes.size());
         for (Node node : nodes) {
             if (node != null) {
                 String name = node.getCompleteId();
                 g.addVertex(name);
                 if (node.getPosition() != null) {
-                    layout.setLocation(name,node.getPosition());
+                    layout.setLocation(name, node.getPosition());
                     // System.out.println("Position: " + name + " : " + node.getPosition().toString());
                     vv.getGraphLayout().lock(name, true);
                 }
@@ -234,7 +237,64 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         };
 
         final PickedState<String> pickedState = vv.getPickedVertexState();
+
         pickedState.addItemListener(new ItemListener() {
+           
+
+            public String data(String name) {
+                StringBuffer info;
+                if (name.contains(" : ")) {
+                    name = name.split(" : ")[0];
+                }
+                Model m = NDCore.getDesktop().getSelectedDataFiles()[0].getDocument().getModel();
+                Reaction reaction = m.getReaction(name);
+                info = new StringBuffer();
+                if (reaction != null) {
+                    KineticLaw law = reaction.getKineticLaw();
+                    if (law != null) {
+                        Parameter lbound = law.getParameter("LOWER_BOUND");
+                        Parameter ubound = law.getParameter("UPPER_BOUND");
+                        info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append(":\n");
+                    } else {
+                        info.append(reaction.getId()).append(":\n");
+                    }
+                    info.append("Reactants: \n");
+                    ListOf spref = reaction.getListOfReactants();
+                    for (int i = 0; i < spref.size(); i++) {
+                        SpeciesReference sr = (SpeciesReference) spref.get(i);
+                        Species sp = m.getSpecies(sr.getSpecies());
+                        info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
+                    }
+                    info.append("Products: \n");
+                    spref = reaction.getListOfProducts();
+                    for (int i = 0; i < spref.size(); i++) {
+                        SpeciesReference sr = (SpeciesReference) spref.get(i);
+                        Species sp = m.getSpecies(sr.getSpecies());
+                        info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
+                    }
+                } else {
+                    Species sp = m.getSpecies(name);
+                    if (sp != null) {
+                        info.append(sp.getId()).append(" - ").append(sp.getName());
+                        info.append("\n\nPresent in: \n");
+                        int count = 0;
+                        ListOf reactions = m.getListOfReactions();
+                        for (int i=0; i< reactions.size();i++) {
+                            Reaction r = (Reaction) reactions.get(i);
+                            if (r.getReactant(name) !=null || r.getProduct(name)!=null) {
+                                info.append(r.getId()).append(", ");
+                                count++;
+                                if (count == 2) {
+                                    count = 0;
+                                    info.append("\n");
+                                }
+                            }
+                        }
+                    }
+                }
+                return info.toString();
+            }
+
             @Override
             public void itemStateChanged(ItemEvent e) {
 
@@ -245,21 +305,29 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                     if (pickedState.isPicked(vertex)) {
                         selectedNode.add(vertex);
                         //Update node position in the graph
-
-                        if (m != null && showInfo) {
-                            if (vertex.contains(" / ")) {
-                                vertex = vertex.split(" / ")[0];
-                            }
-                            String name = vertex.replace("sp:", "").split(" - ")[0];
-                            if (name.contains(" : ")) {
-                                name = name.split(" : ")[0];
-                            }
-                          //  transFrame = new TransFrame(name);
-
-                        } else {
-                            System.out.println("Vertex " + vertex
-                                + " is now selected");
+                        if (vertex.contains(" / ")) {
+                            vertex = vertex.split(" / ")[0];
                         }
+                        String name = vertex.replace("sp:", "").split(" - ")[0];
+                        if (name.contains(" : ")) {
+                            name = name.split(" : ")[0];
+                        }
+                        area.setText(data(name));
+//                        if (m != null && showInfo) {
+//                            if (vertex.contains(" / ")) {
+//                                vertex = vertex.split(" / ")[0];
+//                            }
+//                            String name = vertex.replace("sp:", "").split(" - ")[0];
+//                            if (name.contains(" : ")) {
+//                                name = name.split(" : ")[0];
+//                            }
+//                            //  transFrame = new TransFrame(name);
+//                            
+//
+//                        } else {
+//                            System.out.println("Vertex " + vertex
+//                                    + " is now selected");
+//                        }
                     } else {
                         selectedNode.remove(vertex);
                         //  System.out.println("Position:" + vertex);
@@ -268,12 +336,12 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                             n.setPosition(layout.getX(vertex), layout.getY(vertex));
                             //  System.out.println("New Position:" + vertex + " : " + layout.getX(vertex) + " - " + layout.getY(vertex));
                         }
-                        if (/*transFrame != null &&*/ showInfo) {
-                           // transFrame.setVisible(false);
+                        if (/*transFrame != null &&*/showInfo) {
+                            // transFrame.setVisible(false);
                             //transFrame.dispose();
                         } else {
                             System.out.println("Vertex " + vertex
-                                + " no longer selected");
+                                    + " no longer selected");
                         }
                     }
                 }
@@ -298,16 +366,16 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                             //transFrame = new TransFrame(name);
                         } else {
                             System.out.println("Edge " + edge
-                                + " is now selected");
+                                    + " is now selected");
                         }
                     } else {
                         selectedNode.remove(edge);
                         if (/*transFrame != null && */showInfo) {
-                          //  transFrame.setVisible(false);
-                           // transFrame.dispose();
+                            //  transFrame.setVisible(false);
+                            // transFrame.dispose();
                         } else {
                             System.out.println("Edge " + edge
-                                + " no longer selected");
+                                    + " no longer selected");
                         }
                     }
 
@@ -317,16 +385,16 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
         float dash[] = {1.0f};
         final Stroke edgeStroke = new BasicStroke(1.0f, BasicStroke.CAP_ROUND,
-            BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
+                BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
         Transformer<String, Stroke> edgeStrokeTransformer
-            = new Transformer<String, Stroke>() {
-                @Override
-                public Stroke transform(String s) {
-                    return edgeStroke;
-                }
-            };
+                = new Transformer<String, Stroke>() {
+            @Override
+            public Stroke transform(String s) {
+                return edgeStroke;
+            }
+        };
 
-/*        Transformer labelTransformer = new ChainedTransformer<>(new Transformer[]{
+        Transformer labelTransformer = new ChainedTransformer<>(new Transformer[]{
             new ToStringLabeller<>(),
             new Transformer<String, String>() {
                 @Override
@@ -337,7 +405,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                 }
             }});
         Transformer labelTransformer2 = new ChainedTransformer<>(new Transformer[]{
-            new ToStringLabeller<String,String>(),
+            new ToStringLabeller<>(),
             new Transformer<String, String>() {
                 @Override
                 public String transform(String input) {
@@ -347,13 +415,13 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
                 }
             }});
-*/
-        //vv.getRenderContext().setVertexLabelTransformer(labelTransformer2);
-       // vv.getRenderContext().setVertexFillPaintTransformer(vertexPaint);
-        //vv.getRenderContext().setEdgeStrokeTransformer((Function) edgeStrokeTransformer);
+
+        vv.getRenderContext().setVertexLabelTransformer(labelTransformer2);
+        vv.getRenderContext().setVertexFillPaintTransformer(vertexPaint);
+        vv.getRenderContext().setEdgeStrokeTransformer(edgeStrokeTransformer);
         vv.getRenderContext().getEdgeLabelRenderer().setRotateEdgeLabels(false);
-        //vv.getRenderContext().setEdgeLabelTransformer((Function) labelTransformer);
-      //  vv.getRenderContext().setVertexShapeTransformer((Function) vertexShape);
+        vv.getRenderContext().setEdgeLabelTransformer(labelTransformer);
+        vv.getRenderContext().setVertexShapeTransformer(vertexShape);
         vv.getRenderer().getVertexLabelRenderer().setPosition(Renderer.VertexLabel.Position.CNTR);
 
         DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
@@ -473,11 +541,14 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             }
 
         });
-        topPanel.add(field);
-        topPanel.add(banner);
-        topPanel.add(button);
+        this.area = new JTextArea();
+        this.area.setPreferredSize(new Dimension(650, 200));
+        topPanel.add(this.area);
+       // topPanel.add(field);
+        //topPanel.add(banner);
+       // topPanel.add(button);
         topPanel.add(saveButton);
-        topPanel.setPreferredSize(new Dimension(1000, 40));
+        topPanel.setPreferredSize(new Dimension(1000, 200));
         topPanel.setBackground(Color.WHITE);
         vv.add(topPanel);
         vv.setBackground(Color.WHITE);
@@ -547,8 +618,8 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             return;
         }
 
-         ListOf listOfReactions = m.getListOfReactions();
-         for (int i = 0; i < m.getNumReactions(); i++) {
+        ListOf listOfReactions = m.getListOfReactions();
+        for (int i = 0; i < m.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
             if (reaction != null && !reaction.contains(r.getId())) {
                 continue;
@@ -556,21 +627,21 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 //            if (r.getId().contains("Ex")) {
 //                continue;
 //            }
-            if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId())!=null) {
+            if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
                 double lb = Double.NEGATIVE_INFINITY;
                 double ub = Double.POSITIVE_INFINITY;
                 Double flux = null;
                 // read bounds to know the direction of the edges
                 if (r.getKineticLaw() != null) {
                     KineticLaw law = r.getKineticLaw();
-                    LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                    Parameter lbound = law.getParameter("LOWER_BOUND");
                     lb = lbound.getValue();
-                    LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                    ub = ubound.getValue();                    
-                    LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");
-                    try{
+                    Parameter ubound = law.getParameter("UPPER_BOUND");
+                    ub = ubound.getValue();
+                    Parameter rflux = law.getParameter("FLUX_VALUE");
+                    try {
                         flux = rflux.getValue();
-                    }catch(Exception e){
+                    } catch (Exception e) {
                         flux = 0.0;
                     }
                 }
@@ -611,7 +682,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                     }
                     ListOf listOfSR = r.getListOfReactants();
                     for (int e = 0; e < r.getNumReactants(); e++) {
-                        SpeciesReference sr = (SpeciesReference) listOfSR.get(e); 
+                        SpeciesReference sr = (SpeciesReference) listOfSR.get(e);
                         Species sps = mInit.getSpecies(sr.getSpecies());
 
                         //                 if (!this.m.containsSpecies(sp.getId())) {
@@ -659,17 +730,17 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
                         }
                     }
-                    
+
                     ListOf listOfProducts = r.getListOfProducts();
                     for (int j = 0; j < listOfProducts.size(); j++) {
-                        SpeciesReference sr = (SpeciesReference) listOfProducts.get(j);     
-                    
+                        SpeciesReference sr = (SpeciesReference) listOfProducts.get(j);
+
                         String spId = sr.getSpecies();
-                        Species sps= this.m.getSpecies(spId);
+                        Species sps = this.m.getSpecies(spId);
                         //    if (!this.m.containsSpecies(sp.getId())) {
                         //      this.m.addSpecies(sps);
                         //}
-                        
+
                         String nodeProduct = isThere(V, spId);
                         if (nodeProduct == null) {
 
@@ -729,20 +800,13 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         String[] cof = this.cofactors.split(",");
         Collection<String> Vertices = g.getVertices();
         for (String node : Vertices) {
-            for(String c : cof){
-                if(node.contains(c)){
+            for (String c : cof) {
+                if (node.contains(c)) {
                     g.removeVertex(node);
-                //   graph.removeNode(node);
+                    //   graph.removeNode(node);
                     removeCofactors();
                     break;
                 }
-                /*if (node.contains("Proton") || node.contains("Water") || node.contains(" : phosphate ") || node.contains(" : ADP")
-                || node.contains(" : ATP") || node.contains(" : NAD") || node.contains(" : CO2") || node.contains(" : oxygen")
-                || node.contains(": AMP") || node.contains(" : diphosphate ") || node.contains(" : carbon dioxide ") || node.contains(" : potassium ")) {
-                g.removeVertex(node);
-                //   graph.removeNode(node);
-                removeCofactors();
-                break;*/
             }
         }
 
@@ -767,28 +831,28 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         r.setName(reaction.getName());
 
         ListOf reactants = reaction.getListOfReactants();
-        for (int i = 0; i< reactants.size(); i++) {
+        for (int i = 0; i < reactants.size(); i++) {
             SpeciesReference sp = (SpeciesReference) reactants.get(i);
             SpeciesReference spref = r.createReactant();
             spref.setId(sp.getSpecies());
             spref.setStoichiometry(sp.getStoichiometry());
 
-            if (m.getSpecies(sp.getSpecies())!= null) {
+            if (m.getSpecies(sp.getSpecies()) != null) {
                 spref.setSpecies(sp.getSpecies());
             } else {
                 Species specie = (Species) m.getSpecies(sp.getSpecies()).cloneObject();
                 m.addSpecies(specie);
                 spref.setSpecies(sp.getSpecies());
             }
-           
+
         }
 
         ListOf products = reaction.getListOfProducts();
-        for (int i = 0; i< products.size(); i++) {
+        for (int i = 0; i < products.size(); i++) {
             SpeciesReference sp = (SpeciesReference) products.get(i);
             SpeciesReference spref = r.createProduct();
             spref.setStoichiometry(sp.getStoichiometry());
-            if (m.getSpecies(sp.getSpecies())!= null) {
+            if (m.getSpecies(sp.getSpecies()) != null) {
                 spref.setSpecies(sp.getSpecies());
             } else {
                 Species specie = (Species) m.getSpecies(sp.getSpecies()).cloneObject();
@@ -797,41 +861,40 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             }
         }
 
-        
         if (reaction.getKineticLaw() != null) {
             KineticLaw law = r.createKineticLaw();
-            LocalParameter lboundP = law.createLocalParameter();
+            Parameter lboundP = law.createParameter();
             lboundP.setId("LOWER_BOUND");
-            if (reaction.getKineticLaw().getLocalParameter("LOWER_BOUND") != null) {
-                lboundP.setValue(reaction.getKineticLaw().getLocalParameter("LOWER_BOUND").getValue());
+            if (reaction.getKineticLaw().getParameter("LOWER_BOUND") != null) {
+                lboundP.setValue(reaction.getKineticLaw().getParameter("LOWER_BOUND").getValue());
 
-                law.addLocalParameter(lboundP);
-                LocalParameter uboundP = law.createLocalParameter();
+                law.addParameter(lboundP);
+                Parameter uboundP = law.createParameter();
                 uboundP.setId("UPPER_BOUND");
-                uboundP.setValue(reaction.getKineticLaw().getLocalParameter("LOWER_BOUND").getValue());
-                law.addLocalParameter(uboundP);
-                
+                uboundP.setValue(reaction.getKineticLaw().getParameter("LOWER_BOUND").getValue());
+                law.addParameter(uboundP);
+
                 /*LocalParameter obj = new LocalParameter("OBJECTIVE_COEFFICIENT");
                 obj.setValue(reaction.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT").getValue());
                 law.addLocalParameter(obj);*/
-                LocalParameter obj = law.createLocalParameter();
+                Parameter obj = law.createParameter();
                 obj.setId("OBJECTIVE_COEFFICIENT");
                 obj.setValue(0.0);
-                law.addLocalParameter(obj);
-                LocalParameter fv = law.createLocalParameter();
+                law.addParameter(obj);
+                Parameter fv = law.createParameter();
                 fv.setId("FLUX_VALUE");
-                try{
-                    fv.setValue(reaction.getKineticLaw().getLocalParameter("FLUX_VALUE").getValue());
-                }catch(Exception e){
+                try {
+                    fv.setValue(reaction.getKineticLaw().getParameter("FLUX_VALUE").getValue());
+                } catch (Exception e) {
                     fv.setValue(0.0);
                 }
-                law.addLocalParameter(fv);
-                
+                law.addParameter(fv);
+
                 r.setKineticLaw(law);
-            } 
+            }
         }
         r.appendNotes(reaction.getNotes());
-        
+
         m.addReaction(r);
     }
 
@@ -883,10 +946,10 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             GUIUtils.addMenuItem(popupMenu, "All", this, "All");
             int i = 0;
             ListOf reactions = mInit.getListOfReactions();
-            for (i =0; i < reactions.size(); i++) {
-                Reaction r = (Reaction) reactions.get(i);
-                if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId())!=null) {
-                    String reaction = r.getId() + " - " +r.getName();
+            for (int e = 0; e < reactions.size(); e++) {
+                Reaction r = (Reaction) reactions.get(e);
+                if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
+                    String reaction = r.getId() + " - " + r.getName();
                     GUIUtils.addMenuItem(popupMenu, reaction, this, reaction);
                     i++;
                 }
@@ -924,7 +987,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         return new Color(red, green, blue, alpha);
 
     }
-    
+
     public static Color lighter(Color color, double fraction) {
 
         int red = (int) Math.round(Math.max(0, color.getRed() + 255 * fraction));
@@ -941,13 +1004,13 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         // Create the VisualizationImageServer
 // vv is the VisualizationViewer containing my graph
         VisualizationImageServer<String, String> vis
-            = new VisualizationImageServer<String, String>(vv.getGraphLayout(),
-                vv.getSize());
+                = new VisualizationImageServer<String, String>(vv.getGraphLayout(),
+                        vv.getSize());
 
 // Configure the VisualizationImageServer the same way
 // you did your VisualizationViewer. In my case e.g.
         vis.setBackground(Color.WHITE);
-       /* vis.getRenderContext().setEdgeLabelTransformer(new ToStringLabeller<>());
+        /* vis.getRenderContext().setEdgeLabelTransformer(new ToStringLabeller<>());
         vis.getRenderContext().setEdgeShapeTransformer(new EdgeShape.Line<>());
         vis.getRenderContext().setVertexLabelTransformer(new ToStringLabeller<>());
         vis.getRenderer().getVertexLabelRenderer()
@@ -955,9 +1018,9 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
 // Create the buffered image
         BufferedImage image = (BufferedImage) vis.getImage(
-            new Point2D.Double(vv.getGraphLayout().getSize().getWidth(),
-                vv.getSize().getHeight()),
-            new Dimension(vv.getSize()));
+                new Point2D.Double(vv.getGraphLayout().getSize().getWidth(),
+                        vv.getSize().getHeight()),
+                new Dimension(vv.getSize()));
 
 // Write image to a png file
         File outputfile = new File(path);
@@ -1025,7 +1088,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                 writer.println("\t\t\toutline\t\"#3333ff\"");
                 writer.println("\t\t\toutline_width\t5.0");
                 writer.println("\t\t]");
-               
+
                 writer.println("\t]");
             }
 

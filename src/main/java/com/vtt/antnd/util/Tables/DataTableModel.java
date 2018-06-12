@@ -18,6 +18,7 @@
 package com.vtt.antnd.util.Tables;
 
 
+import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import java.awt.Color;
 import javax.swing.table.TableModel;
@@ -59,4 +60,6 @@ public interface DataTableModel extends TableModel {
     public boolean isExchange(int row);
 
     public boolean isTransport(int row);
+    
+    public Dataset getDataset();
 }

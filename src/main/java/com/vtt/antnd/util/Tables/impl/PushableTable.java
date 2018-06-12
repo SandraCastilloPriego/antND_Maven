@@ -1,7 +1,12 @@
 package com.vtt.antnd.util.Tables.impl;
 
-
 import com.vtt.antnd.data.DatasetType;
+import com.vtt.antnd.data.network.Edge;
+import com.vtt.antnd.data.network.Graph;
+import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.uniqueId;
+import com.vtt.antnd.desktop.impl.PrintPaths;
+import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.util.Tables.DataTable;
 import com.vtt.antnd.util.Tables.DataTableModel;
 import java.awt.*;
@@ -22,6 +27,13 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
+import org.sbml.libsbml.KineticLaw;
+import org.sbml.libsbml.ListOf;
+import org.sbml.libsbml.Model;
+import org.sbml.libsbml.Parameter;
+import org.sbml.libsbml.Reaction;
+import org.sbml.libsbml.Species;
+import org.sbml.libsbml.SpeciesReference;
 
 /**
  * Creates a table for showing the data sets. It implements DataTable.
@@ -44,7 +56,7 @@ public class PushableTable implements DataTable, ActionListener {
 
     public PushableTable(DataTableModel model) {
         this.model = model;
-        ((AbstractTableModel)this.model).fireTableDataChanged();
+        ((AbstractTableModel) this.model).fireTableDataChanged();
         table = this.tableRowsColor(model);
         setTableProperties();
         registers = new ArrayList<register>();
@@ -106,12 +118,12 @@ public class PushableTable implements DataTable, ActionListener {
                     if (getCellColor(Index_row, Index_col) != null) {
                         comp.setBackground(getCellColor(Index_row, Index_col));
                     }
-                    
-                    if(isExchange(Index_row)){
+
+                    if (isExchange(Index_row)) {
                         comp.setBackground(Color.YELLOW);
                         this.repaint();
                     }
-                    if(isTransport(Index_row)){
+                    if (isTransport(Index_row)) {
                         comp.setBackground(Color.ORANGE);
                         this.repaint();
                     }
@@ -137,7 +149,7 @@ public class PushableTable implements DataTable, ActionListener {
             private Color getCellColor(int row, int column) {
                 return tableModel.getCellColor(row, column);
             }
-            
+
             /*private boolean isExchange(int row){
                 
                 return isExchange(row);
@@ -150,40 +162,45 @@ public class PushableTable implements DataTable, ActionListener {
 
         return colorTable;
     }
-    
-     
-        public boolean isExchange(int row) {
-                try {
-                        for (int i = 0; i < this.getTable().getColumnCount(); i++) {                           
-                                String columnName = this.getTable().getColumnName(i);
-                                if (columnName.matches("Name")) {
-                                    String name = (String)this.getTable().getValueAt(row, i);
-                                        if(name.contains("exchange")) return true;
-                                        else return false;
-                                }
-                        }
-                        return false;
-                } catch (Exception e) {
-                        return false;
-                }
-        }
 
-        
-        public boolean isTransport(int row) {
-                try {
-                        for (int i = 0; i < this.getTable().getColumnCount(); i++) {                           
-                                String columnName = this.getTable().getColumnName(i);
-                                if (columnName.matches("Name")) {
-                                    String name = (String)this.getTable().getValueAt(row, i);
-                                        if(name.contains("port")|| name.contains("diffusion")) return true;
-                                        else return false;
-                                }
-                        }
+    public boolean isExchange(int row) {
+        try {
+            for (int i = 0; i < this.getTable().getColumnCount(); i++) {
+                String columnName = this.getTable().getColumnName(i);
+                if (columnName.matches("Name")) {
+                    String name = (String) this.getTable().getValueAt(row, i);
+                    if (name.contains("exchange")) {
+                        return true;
+                    } else {
                         return false;
-                } catch (Exception e) {
-                        return false;
+                    }
                 }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
         }
+    }
+
+    public boolean isTransport(int row) {
+        try {
+            for (int i = 0; i < this.getTable().getColumnCount(); i++) {
+                String columnName = this.getTable().getColumnName(i);
+                if (columnName.matches("Name")) {
+                    String name = (String) this.getTable().getValueAt(row, i);
+                    if (name.contains("port") || name.contains("diffusion")) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Sets the properties of the table: selection mode, tooltips, actions with
      * keys..
@@ -198,7 +215,6 @@ public class PushableTable implements DataTable, ActionListener {
         this.createTooltips();
 
         // Sorting
-        
         RowSorter<DataTableModel> sorter = new TableRowSorter<DataTableModel>(model);
         table.setRowSorter(sorter);
         table.setUpdateSelectionOnSort(false);
@@ -215,9 +231,9 @@ public class PushableTable implements DataTable, ActionListener {
         registerKey(KeyEvent.VK_DELETE, 0, "Delete");
         registerKey(KeyEvent.VK_Z, ActionEvent.CTRL_MASK, "Back");
         registerKey(KeyEvent.VK_Y, ActionEvent.CTRL_MASK, "Forward");
+        registerKey(KeyEvent.VK_G, ActionEvent.CTRL_MASK, "Visualize");
 
         system = Toolkit.getDefaultToolkit().getSystemClipboard();
-        
 
     }
 
@@ -295,12 +311,12 @@ public class PushableTable implements DataTable, ActionListener {
             int[] rowsselected = table.getSelectedRows();
             int[] colsselected = table.getSelectedColumns();
             if (!((numrows - 1 == rowsselected[rowsselected.length - 1] - rowsselected[0]
-                && numrows == rowsselected.length)
-                && (numcols - 1 == colsselected[colsselected.length - 1] - colsselected[0]
-                && numcols == colsselected.length))) {
+                    && numrows == rowsselected.length)
+                    && (numcols - 1 == colsselected[colsselected.length - 1] - colsselected[0]
+                    && numcols == colsselected.length))) {
                 JOptionPane.showMessageDialog(null, "Invalid Copy Selection",
-                    "Invalid Copy Selection",
-                    JOptionPane.ERROR_MESSAGE);
+                        "Invalid Copy Selection",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
             for (int i = 0; i < numrows; i++) {
@@ -344,7 +360,7 @@ public class PushableTable implements DataTable, ActionListener {
                     for (int j = 0; st2.hasMoreTokens(); j++) {
                         value = st2.nextToken();
                         if (startRow + i < table.getRowCount()
-                            && startCol + j < table.getColumnCount()) {
+                                && startCol + j < table.getColumnCount()) {
                             table.setValueAt(value, startRow + i, startCol + j);
                         }
                     }
@@ -368,8 +384,8 @@ public class PushableTable implements DataTable, ActionListener {
 
             try {
                 int selected = table.getSelectedRowCount();
-                for(int i = 0; i < selected; i++) {                    
-                    table.setValueAt("NA", table.getSelectedRow(), 1);                    
+                for (int i = 0; i < selected; i++) {
+                    table.setValueAt("NA", table.getSelectedRow(), 1);
                     table.repaint();
                     table.revalidate();
                 }
@@ -397,7 +413,159 @@ public class PushableTable implements DataTable, ActionListener {
                 indexRegister++;
             }
         }
+
+        if (e.getActionCommand().compareTo("Visualize") == 0) {
+            int[] selectedRow = table.getSelectedRows();
+            ArrayList<String> reactions = new ArrayList();
+            for (int i = 0; i < selectedRow.length; i++) {
+                String id = (String) table.getValueAt(selectedRow[i], 1);
+                reactions.add(id);
+            }
+            Model m = this.model.getDataset().getDocument().getModel();
+            Graph g = this.getGraph(m, reactions);
+
+            JInternalFrame frame = new JInternalFrame("ReactionVis", true, true, true, true);
+            JPanel pn = new JPanel();
+            JScrollPane panel = new JScrollPane(pn);
+
+            frame.setSize(new Dimension(700, 500));
+            frame.add(panel);
+            NDCore.getDesktop().addInternalFrame(frame);
+
+            PrintPaths print = new PrintPaths(m);
+
+            try {
+
+                System.out.println("Visualize");
+                pn.add(print.printPathwayInFrame(g));
+
+            } catch (NullPointerException ex) {
+                System.out.println(ex.toString());
+            }
+            // your valueChanged overridden method }*/
+        }
+
         System.gc();
+    }
+
+    public Graph getGraph(Model model, ArrayList<String> reactions) {
+
+        java.util.List<Node> nodeList = new ArrayList<>();
+        java.util.List<Edge> edgeList = new ArrayList<>();
+
+        Graph g = new Graph(nodeList, edgeList);
+
+        try {
+            // For eac reaction in the model, a Node is created in the graph
+
+            for (int i = 0; i < reactions.size(); i++) {
+                Reaction r = model.getReaction(reactions.get(i));
+
+                //Node is created
+                Node reactionNode = new Node(r.getId(), r.getName());
+                this.setPosition(reactionNode, g);
+
+                g.addNode2(reactionNode);
+                int direction = this.getDirection(r);
+                // read bounds to know the direction of the edges
+                ListOf listOfReactants = r.getListOfReactants();
+                for (int e = 0; e < r.getNumReactants(); e++) {
+                    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
+                    Species sp = model.getSpecies(spr.getSpecies());
+
+                    Node spNode = g.getNode(sp.getId());
+                    if (spNode == null) {
+                        spNode = new Node(sp.getId(), sp.getName());
+                    }
+                    this.setPosition(spNode, g);
+                    g.addNode2(spNode);
+                    g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
+
+                }
+
+                ListOf listOfProducts = r.getListOfProducts();
+                for (int e = 0; e < r.getNumProducts(); e++) {
+                    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
+                    Species sp = model.getSpecies(spr.getSpecies());
+
+                    Node spNode = g.getNode(sp.getId());
+                    if (spNode == null) {
+                        spNode = new Node(sp.getId(), sp.getName());
+                    }
+                    this.setPosition(spNode, g);
+                    g.addNode2(spNode);
+                    g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
+
+                }
+
+            }
+        } catch (Exception e) {
+            System.out.println(e.toString());
+        }
+        System.out.println(g.getNumberOfNodes());
+        return g;
+    }
+
+    private void setPosition(Node node, Graph graph) {
+        if (graph != null) {
+            Node gNode = graph.getNode(node.getId());
+            if (gNode != null) {
+                node.setPosition(gNode.getPosition());
+            }
+        }
+    }
+
+    private int getDirection(Reaction r) {
+        int direction = 2;
+        double lb = Double.NEGATIVE_INFINITY;
+        double ub = Double.POSITIVE_INFINITY;
+        Double flux = null;
+        if (r.getKineticLaw() != null) {
+            KineticLaw law = r.getKineticLaw();
+            Parameter lbound = law.getParameter("LOWER_BOUND");
+            lb = lbound.getValue();
+            Parameter ubound = law.getParameter("UPPER_BOUND");
+            ub = ubound.getValue();
+            Parameter rflux = law.getParameter("FLUX_VALUE");
+            flux = rflux.getValue();
+        }
+        if (flux != null) {
+            if (flux > 0) {
+                direction = 1;
+            } else if (flux < 0) {
+                direction = 0;
+            }
+        } else {
+            if (ub > 0 && lb < 0) {
+                direction = 2;
+            } else if (ub > 0) {
+                direction = 1;
+            } else {
+                direction = 0;
+            }
+        }
+        return direction;
+    }
+
+    private Edge addEdge(Node node1, Node node2, String name, int direction) {
+        Edge e = null;
+        switch (direction) {
+            case 1:
+                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e.setDirection(true);
+                break;
+            case 2:
+                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e.setDirection(false);
+                break;
+            case 0:
+                e = new Edge(name + " - " + uniqueId.nextId(), node2, node1);
+                e.setDirection(true);
+                break;
+            default:
+                break;
+        }
+        return e;
     }
 
     /**
@@ -479,8 +647,8 @@ public class PushableTable implements DataTable, ActionListener {
         }
 
         public Component getTableCellRendererComponent(JTable table,
-            Object value, boolean isSelected, boolean hasFocus, int row,
-            int column) {
+                Object value, boolean isSelected, boolean hasFocus, int row,
+                int column) {
             setText((value == null) ? "" : value.toString());
             boolean isPressed = (column == pushedColumn);
             getModel().setPressed(isPressed);
@@ -498,7 +666,7 @@ public class PushableTable implements DataTable, ActionListener {
      *
      */
     class NumberRenderer
-        extends DefaultTableCellRenderer {
+            extends DefaultTableCellRenderer {
 
         private NumberFormat formatter;
 

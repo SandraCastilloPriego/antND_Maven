@@ -231,4 +231,9 @@ public class MetaboliteDataModel extends AbstractTableModel implements DataTable
         return false;
     }
 
+    @Override
+    public Dataset getDataset() {
+        return this.dataset;
+    }
+
 }

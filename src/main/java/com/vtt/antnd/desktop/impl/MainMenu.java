@@ -39,7 +39,7 @@ import javax.swing.*;
  */
 public final class MainMenu extends JMenuBar implements ActionListener {
 
-    private final JMenu fileMenu, configurationMenu, simulationMenu, visualizationMenu, optimizationMenu, analysisMenu, reactionMenu, helpMenu, DBMenu;
+    private final JMenu fileMenu, configurationMenu, simulationMenu, visualizationMenu, optimizationMenu, analysisMenu, reactionMenu, helpMenu;
     private final JWindowsMenu windowsMenu;
     private final JMenuItem showAbout;
     private final Map<JMenuItem, NDProcessingModule> moduleMenuItems = new HashMap<>();
@@ -89,11 +89,11 @@ public final class MainMenu extends JMenuBar implements ActionListener {
         analysisMenu.setIcon(new ImageIcon("icons/analysis.png"));
         add(analysisMenu);
 
-        DBMenu = new JMenu("Graph DB");
-        DBMenu.setMnemonic(KeyEvent.VK_D);
-        DBMenu.setFont(new Font("SansSerif", Font.BOLD, 13));
-        DBMenu.setIcon(new ImageIcon("icons/neo4j.png"));
-        add(DBMenu);
+//        DBMenu = new JMenu("Graph DB");
+//        DBMenu.setMnemonic(KeyEvent.VK_D);
+//        DBMenu.setFont(new Font("SansSerif", Font.BOLD, 13));
+//        DBMenu.setIcon(new ImageIcon("icons/neo4j.png"));
+//        add(DBMenu);
 
         JDesktopPane mainDesktopPane = ((MainWindow) NDCore.getDesktop()).getDesktopPane();
         windowsMenu = new JWindowsMenu(mainDesktopPane);
@@ -146,9 +146,9 @@ public final class MainMenu extends JMenuBar implements ActionListener {
             case ANALYSIS:
                 analysisMenu.add(newItem);
                 break;
-            case DB:
-                DBMenu.add(newItem);
-                break;
+            //case DB:
+            //    DBMenu.add(newItem);
+            //    break;
             case HELPSYSTEM:
                 helpMenu.add(newItem);
                 break;
@@ -178,9 +178,9 @@ public final class MainMenu extends JMenuBar implements ActionListener {
             case ANALYSIS:
                 analysisMenu.addSeparator();
                 break;
-            case DB:
-                DBMenu.addSeparator();
-                break;
+            //case DB:
+            //    DBMenu.addSeparator();
+            //    break;
             case HELPSYSTEM:
                 helpMenu.addSeparator();
                 break;

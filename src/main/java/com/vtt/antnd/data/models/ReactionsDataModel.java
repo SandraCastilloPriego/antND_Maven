@@ -371,4 +371,9 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         }
         return false;
     }
+
+    @Override
+    public Dataset getDataset() {
+        return this.dataset;
+    }
 }

@@ -23,7 +23,8 @@ import java.util.*;
 import javax.help.BadIDException;
 import javax.help.HelpSet;
 import javax.help.Map;
-import org.apache.commons.collections4.iterators.IteratorEnumeration;
+import org.apache.commons.collections.iterators.IteratorEnumeration;
+
 /**
  * @author Taken from MZmine2 http://mzmine.sourceforge.net/
  */

@@ -19,7 +19,15 @@
 package com.vtt.antnd.main;
 
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfModule;
+import com.vtt.antnd.modules.file.openProject.OpenProjectModule;
 import com.vtt.antnd.modules.file.openfile.OpenBasicFileModule;
+import com.vtt.antnd.modules.file.saveProject.SaveProjectModule;
+import com.vtt.antnd.modules.pathfinders.somePaths.SomePathsModule;
+import com.vtt.antnd.modules.pathfinders.superAnt.SuperAntModule;
+import com.vtt.antnd.modules.reactionOp.showAllCompoundList.ShowAllCompoundsModule;
+import com.vtt.antnd.modules.reactionOp.showCompound.ShowCompoundModule;
+import com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule;
+import com.vtt.antnd.modules.simulation.FBA.LPModule;
 
 
 
@@ -33,6 +41,14 @@ public class NDModulesList {
      */
     public static final Class<?> MODULES[] = new Class<?>[]{
         OpenBasicFileModule.class,
+        OpenProjectModule.class,
+        SaveProjectModule.class,
         CofactorConfModule.class,
+        ShowCompoundModule.class,
+        ShowAllCompoundsModule.class,
+        ShowReactionModule.class,
+        SomePathsModule.class,
+        SuperAntModule.class,
+        LPModule.class,
         };
 }
