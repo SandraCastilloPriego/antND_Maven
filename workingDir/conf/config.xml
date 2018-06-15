@@ -84,7 +84,7 @@
         </module>
         <module class="ReportFBA">
             <parameters>
-                <parameter name="Report paths"></parameter>
+                <parameter name="Report paths">/home/scsandra/NetBeansProjects/antND/workingDir</parameter>
             </parameters>
         </module>
     </modules>
