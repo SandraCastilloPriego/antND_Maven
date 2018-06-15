@@ -4,23 +4,23 @@
         <module class="com.vtt.antnd.modules.file.openfile.OpenBasicFileModule">
             <parameters>
                 <parameter name="File name">
-                    <file>/home/scsandra/Documents/projects/MyTech/C1-curation/data/compare/C1-clean.sbml</file>
+                    <file>file.sbml</file>
                 </parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.file.openProject.OpenProjectModule">
             <parameters>
-                <parameter name="Project name">/home/scsandra/Documents/projects/MyTech/C1-curation/results/AntND/SomeSubnetworks.zip</parameter>
+                <parameter name="Project name">SomeSubnetworks.zip</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.file.saveProject.SaveProjectModule">
             <parameters>
-                <parameter name="File name">/home/scsandra/Documents/projects/MyTech/C1-curation/results/AntND/SomeSubnetworks.zip</parameter>
+                <parameter name="File name">SomeSubnetworks.zip</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.configuration.cofactors.CofactorConfModule">
             <parameters>
-                <parameter name="Cofactor ids">M_AW1L8VO2_m,M_AW1L8VO2_c,M_AW1L8VO2_p,M_AW1L8VO2_e,M_AW1L8VO2_b,M_11VXC9A6_c,M_11VXC9A6_m,M_11VXC9A6_p,M_11VXC9A6_b,M_11VXC9A6_e,M_AP8YHZ9W_c,M_AP8YHZ9W_m,M_AP8YHZ9W_p,M_AP8YHZ9W_e,M_AP8YHZ9W_b,M_HKFSA9SK_c,M_HKFSA9SK_m,M_HKFSA9SK_p,M_HKFSA9SK_e,M_HKFSA9SK_b,M_SOZHOLIU_c,M_SOZHOLIU_m,M_SOZHOLIU_p,M_SOZHOLIU_e,M_SOZHOLIU_b,M_VRYC2O86_c,M_VRYC2O86_m,M_VRYC2O86_p,M_VRYC2O86_e,M_VRYC2O86_b,M_3G6EPOPN_m,M_3G6EPOPN_c,M_3G6EPOPN_p,M_3G6EPOPN_b,M_3G6EPOPN_e,M_C3P8OWW3_m,M_C3P8OWW3_c,M_C3P8OWW3_b,M_C3P8OWW3_e,M_C3P8OWW3_p,M_YR76E8ZV_m,M_YR76E8ZV_c,M_YR76E8ZV_p,M_YR76E8ZV_b,M_YR76E8ZV_e,M_DANEGLWX_m,M_DANEGLWX_c,M_DANEGLWX_p,M_DANEGLWX_e,M_DANEGLWX_b,M_743CKN0D_m,M_743CKN0D_c,M_743CKN0D_p,M_743CKN0D_e,M_743CKN0D_b,M_RGIBJ8LR_m,M_RGIBJ8LR_c,M_RGIBJ8LR_p,M_RGIBJ8LR_e,M_RGIBJ8LR_b,M_42QUEYZ0_m,M_42QUEYZ0_c,M_42QUEYZ0_p,M_42QUEYZ0_e,M_42QUEYZ0_b,M_O6SPVR8Q_m,M_O6SPVR8Q_b,M_O6SPVR8Q_c,M_O6SPVR8Q_e,M_O6SPVR8Q_p,M_7I0C11WC_m,M_7I0C11WC_c,M_7I0C11WC_b,M_7I0C11WC_e,M_7I0C11WC_p,M_VTPA8KLJ_m,M_VTPA8KLJ_c,M_VTPA8KLJ_p,M_VTPA8KLJ_b,M_VTPA8KLJ_e,M_VA9IZQ1Q_m,M_VA9IZQ1Q_c,M_VA9IZQ1Q_p,M_VA9IZQ1Q_b,M_VA9IZQ1Q_e,M_2O9IGWQW_m,M_2O9IGWQW_c,M_2O9IGWQW_b,M_2O9IGWQW_e,M_2O9IGWQW_p,M_DVSZ9J1Y_e,M_DVSZ9J1Y_p,M_DVSZ9J1Y_c,M_DVSZ9J1Y_b,M_DVSZ9J1Y_m,M_GXNUTZ8Z_m,M_GXNUTZ8Z_c,M_GXNUTZ8Z_b,M_GXNUTZ8Z_e,M_GXNUTZ8Z_p,M_51F4QGAK_m,M_51F4QGAK_c,M_51F4QGAK_e,M_51F4QGAK_b,M_51F4QGAK_p,M_Proton_m,M_Proton_c,M_Proton_p,M_Proton_e,M_Proton_b,M_TL997PO5_p,M_6E7UO6LQ_c,M_6E7UO6LQ_p,M_6E7UO6LQ_m,M_6E7UO6LQ_b,M_6E7UO6LQ_e,M_TL997PO5_m,M_TL997PO5_c,M_TL997PO5_e,M_TL997PO5_b,M_Water_m,M_Water_e,M_Water_c,M_Water_b,M_Water_p,M_H0Z7VRQL_m,M_H0Z7VRQL_c,M_H0Z7VRQL_b,M_H0Z7VRQL_e,M_H0Z7VRQL_p,M_CKZP2SKA_m,M_CKZP2SKA_c,M_CKZP2SKA_b,M_CKZP2SKA_e,M_CKZP2SKA_p,M_VSW1M3Q6_c</parameter>
+                <parameter name="Cofactor ids">CofactorIds</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showCompound.ShowCompoundModule">
@@ -33,7 +33,7 @@
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule">
             <parameters>
-                <parameter name="Reaction name">Ex_M_YORT680D_b</parameter>
+                <parameter name="Reaction name">t</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showAllReaction.ShowAllReactionsModule">
@@ -41,7 +41,7 @@
         </module>
         <module class="com.vtt.antnd.modules.visualization.FBAVisualization.FluxAnalysisModule">
             <parameters>
-                <parameter name="Fluxes">/home/scsandra/Documents/projects/MyTech/C1-curation/results/FVA/FVAProduct.txt</parameter>
+                <parameter name="Fluxes">VAProduct.txt</parameter>
                 <parameter name="Flux threshold">1.0E-6</parameter>
             </parameters>
         </module>
@@ -84,7 +84,7 @@
         </module>
         <module class="ReportFBA">
             <parameters>
-                <parameter name="Report paths">/home/scsandra/Documents/test/report4.pdf</parameter>
+                <parameter name="Report paths"></parameter>
             </parameters>
         </module>
     </modules>
