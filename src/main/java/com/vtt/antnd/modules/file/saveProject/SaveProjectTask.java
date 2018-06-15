@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.modules.file.saveProject;
 
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
 import com.vtt.antnd.data.network.Edge;
@@ -44,7 +43,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.stream.XMLStreamException;
 import org.sbml.libsbml.SBMLWriter;
-
 
 /**
  *
@@ -82,20 +80,20 @@ public class SaveProjectTask extends AbstractTask {
         try {
             setStatus(TaskStatus.PROCESSING);
             File tempFile = File.createTempFile(file.getName(), ".tmp",
-                file.getParentFile());
+                    file.getParentFile());
             tempFile.deleteOnExit();
             // Create a ZIP stream writing to the temporary file
             FileOutputStream tempStream = new FileOutputStream(tempFile);
             try (ZipOutputStream zipStream = new ZipOutputStream(tempStream)) {
                 saveSBMLFiles(zipStream);
                 saveHistory(zipStream);
-                savePaths(zipStream);
+                //savePaths(zipStream);
                 zipStream.close();
             }
             boolean renameOK = tempFile.renameTo(file);
             if (!renameOK) {
                 throw new IOException("Could not move the temporary file "
-                    + tempFile + " to the final location " + file);
+                        + tempFile + " to the final location " + file);
             }
 
             setStatus(TaskStatus.FINISHED);
@@ -115,7 +113,7 @@ public class SaveProjectTask extends AbstractTask {
                 File tempFile = File.createTempFile(datafile.getDatasetName(), ".tmp");
                 SBMLWriter writer = new SBMLWriter();
                 writer.writeSBML(datafile.getDocument(), tempFile.getAbsolutePath());
-                
+
                 try (FileInputStream fileStream = new FileInputStream(tempFile)) {
                     StreamCopy copyMachine = new StreamCopy();
                     copyMachine.copy(fileStream, zipStream);
@@ -130,8 +128,8 @@ public class SaveProjectTask extends AbstractTask {
 
     private void saveHistory(ZipOutputStream zipStream) throws IOException {
         Dataset[] selectedFiles = NDCore.getDesktop().getAllDataFiles();
-        for (final Dataset datafile : selectedFiles) {  
-            boolean isParent = datafile.isParent();           
+        for (final Dataset datafile : selectedFiles) {
+            boolean isParent = datafile.isParent();
             String parent = datafile.getParent();
             String info = datafile.getInfo().getText();
             String biomass = "";//datafile.getBiomassId();
@@ -141,52 +139,69 @@ public class SaveProjectTask extends AbstractTask {
             File tempFile = File.createTempFile(datafile.getDatasetName() + "-info", ".tmp");
 
             BufferedWriter writer = null;
-            try {
-                writer = new BufferedWriter(new FileWriter(tempFile.getAbsoluteFile()));
-                if(isParent)
-                    writer.write("Is Parent");
-                else
-                    writer.write("Not Parent: "+ parent);
-                writer.write("\n" + info);
-                if (biomass != null) {
-                    writer.write("\nBiomass= " + biomass);
-                }
-                if (sources != null) {
-                    for (String source : sources) {
-                        writer.write("\nSources= " + source);
-                    }
-                }
-                if (graph != null) {
-                    for (Node node : graph.getNodes()) {
-                        Point2D position = node.getPosition();                        
-                        String name = node.getName();
-                        if(name != null) name = name.trim();
-                        String color = "null";
-                        if (node.getColor() != null) {
-                            color = String.valueOf(node.getColor().getRGB());
-                        }
-                        if (position != null) {
-                            writer.write("\nNodes= " + node.getId() + " : " + name + " // " + position.getX() + " , " + position.getY() + " // " + color);
-                        } else {
-                            writer.write("\nNodes= " + node.getId() + " : " + name + " // null // " + color);
-                        }
-                    }
-                    for (Edge edge : graph.getEdges()) {
-                        try {
-                            writer.write("\nEdges= " + edge.getId() + " // " + edge.getSource().getId() + " || " + edge.getDestination().getId() + " // " + String.valueOf(edge.getDirection()));
-                        } catch (Exception e) {
-                        }
-                    }
-                }
-            } catch (IOException e) {
-            } finally {
-                try {
-                    if (writer != null) {
-                        writer.close();
-                    }
-                } catch (IOException e) {
+            // try {
+            writer = new BufferedWriter(new FileWriter(tempFile.getAbsoluteFile()));
+            if (isParent) {
+                writer.write("Is Parent");
+            } else {
+                writer.write("Not Parent: " + parent);
+            }
+            writer.write("\n" + info);
+            if (biomass != null) {
+                writer.write("\nBiomass= " + biomass);
+            }
+            if (sources != null) {
+                for (String source : sources) {
+                    writer.write("\nSources= " + source);
                 }
             }
+            if (graph != null) {
+                System.out.println("Graph"+ graph.getNodes().size());
+                for (Node node : graph.getNodes()) {
+                    try {
+                        String name = " ";
+                        if (node.getName() != null) {
+                            name = node.getName();
+                            name = name.trim();
+                        }
+                        if (node.getPosition() != null) {
+                            Point2D position = node.getPosition();
+                            try {
+                                writer.write("\nNodes= " + node.getId() + " : " + name + " // " + position.getX() + " , " + position.getY());
+                            } catch (Exception e) {
+                                System.out.print("Something is wrong putting Nodes");
+                                writer.write("\nNodes= " + node.getId() + " : " + name + " // null");
+                            }
+                        } else {
+                            try {
+                               // System.out.print("No position in Nodes" + node.getId());
+                                writer.write("\nNodes= " + node.getId() + " : " + name + " // null");
+                            } catch (Exception eere) {
+                                System.out.println("Node missing");
+                            }
+                        }
+                    } catch (Exception nodeEx) {
+                        System.out.println("Node failed");
+                    }
+                }
+                for (Edge edge : graph.getEdges()) {
+                    try {
+                        writer.write("\nEdges= " + edge.getId() + " // " + edge.getSource().getId() + " || " + edge.getDestination().getId() + " // " + String.valueOf(edge.getDirection()));
+                    } catch (Exception e) {
+                        System.out.print("Something is wrong putting Edges");
+                    }
+                }
+            }
+            // } catch (IOException e) {
+            //    System.out.println(e.toString());
+            //} finally {
+            //   try {
+            if (writer != null) {
+                writer.close();
+            }
+            //    } catch (IOException e) {
+            //   }
+            //}
 
             try (FileInputStream fileStream = new FileInputStream(tempFile)) {
                 StreamCopy copyMachine = new StreamCopy();

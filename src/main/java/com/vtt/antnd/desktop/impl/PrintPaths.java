@@ -86,7 +86,6 @@ import org.freehep.graphics2d.VectorGraphics;
 import org.freehep.graphicsio.svg.SVGGraphics2D;
 import org.sbml.libsbml.KineticLaw;
 import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.LocalParameter;
 import org.sbml.libsbml.Model;
 import org.sbml.libsbml.Parameter;
 import org.sbml.libsbml.Reaction;
@@ -821,6 +820,8 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             if (n != null) {
                 n.setPosition(this.layout.getX(v), this.layout.getY(v));
                 //  System.out.println("New Position:" + vertex + " : " + layout.getX(vertex) + " - " + layout.getY(vertex));
+            }else{
+                System.out.println(v);
             }
         }
     }

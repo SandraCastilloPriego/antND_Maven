@@ -16,6 +16,8 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -165,14 +167,19 @@ public class PushableTable implements DataTable, ActionListener {
 
     public boolean isExchange(int row) {
         try {
+            Model m = this.model.getDataset().getDocument().getModel();
             for (int i = 0; i < this.getTable().getColumnCount(); i++) {
                 String columnName = this.getTable().getColumnName(i);
-                if (columnName.matches("Name")) {
-                    String name = (String) this.getTable().getValueAt(row, i);
-                    if (name.contains("exchange")) {
-                        return true;
-                    } else {
-                        return false;
+                if (columnName.matches("Id")) {                    
+                    String id = (String) this.getTable().getValueAt(row, i);
+                    Reaction reaction = m.getReaction(id);
+                    ListOf products = reaction.getListOfProducts();
+                    for(int e =0; e < products.size();e++){
+                        SpeciesReference spr = (SpeciesReference) products.get(e);
+                        Species sp = m.getSpecies(spr.getSpecies());
+                        if (sp.getBoundaryCondition()== true) {
+                            return true;
+                        } 
                     }
                 }
             }
@@ -184,15 +191,46 @@ public class PushableTable implements DataTable, ActionListener {
 
     public boolean isTransport(int row) {
         try {
-            for (int i = 0; i < this.getTable().getColumnCount(); i++) {
+            
+            Model m = this.model.getDataset().getDocument().getModel();
+            for (int i = 0; i < this.getTable().getColumnCount(); i++) {                
                 String columnName = this.getTable().getColumnName(i);
-                if (columnName.matches("Name")) {
-                    String name = (String) this.getTable().getValueAt(row, i);
-                    if (name.contains("port") || name.contains("diffusion")) {
-                        return true;
-                    } else {
-                        return false;
+                if (columnName.matches("Id")) {                    
+                    String id = (String) this.getTable().getValueAt(row, i);
+                    Reaction reaction = m.getReaction(id);
+                     ListOf reactants = reaction.getListOfReactants();
+                    ArrayList compartReactants = new ArrayList<String>();
+                    for(int e =0; e < reactants.size();e++){
+                        SpeciesReference spr = (SpeciesReference) reactants.get(e);
+                        Species sp = m.getSpecies(spr.getSpecies());
+                        compartReactants.add(sp.getCompartment());
                     }
+                    ListOf products = reaction.getListOfProducts();
+                    ArrayList compartProducts = new ArrayList<String>();
+                    for(int e =0; e < products.size();e++){
+                        SpeciesReference spr = (SpeciesReference) products.get(e);
+                        Species sp = m.getSpecies(spr.getSpecies());
+                        compartProducts.add(sp.getCompartment());
+                        if (sp.getBoundaryCondition()== true) {
+                            return false;
+                        } 
+                    }
+                    
+                    for(int e = 0; e < compartReactants.size(); e++){
+                        if(!compartProducts.contains(compartReactants.get(e))){
+                            return true;
+                        }
+                    }
+                    for(int e = 0; e < compartProducts.size(); e++){
+                        if(!compartReactants.contains(compartProducts.get(e))){
+                            return true;
+                        }
+                    }
+                    
+                    Set<String> uniqueCom = new HashSet<String>(compartReactants);
+                    if(uniqueCom.size() > 1) return true;
+                    uniqueCom = new HashSet<String>(compartProducts);
+                    if(uniqueCom.size() > 1) return true;
                 }
             }
             return false;
@@ -460,24 +498,26 @@ public class PushableTable implements DataTable, ActionListener {
 
             for (int i = 0; i < reactions.size(); i++) {
                 Reaction r = model.getReaction(reactions.get(i));
-
+                System.out.println(r.getId());
                 //Node is created
                 Node reactionNode = new Node(r.getId(), r.getName());
-                this.setPosition(reactionNode, g);
+               // this.setPosition(reactionNode, g);
 
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
                 // read bounds to know the direction of the edges
                 ListOf listOfReactants = r.getListOfReactants();
+                System.out.println(listOfReactants.size());
                 for (int e = 0; e < r.getNumReactants(); e++) {
                     SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
+                    System.out.println(spr.getSpecies());
                     Species sp = model.getSpecies(spr.getSpecies());
-
+                    System.out.println(sp.getName());
                     Node spNode = g.getNode(sp.getId());
                     if (spNode == null) {
                         spNode = new Node(sp.getId(), sp.getName());
                     }
-                    this.setPosition(spNode, g);
+                    //this.setPosition(spNode, g);
                     g.addNode2(spNode);
                     g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
 
@@ -492,7 +532,7 @@ public class PushableTable implements DataTable, ActionListener {
                     if (spNode == null) {
                         spNode = new Node(sp.getId(), sp.getName());
                     }
-                    this.setPosition(spNode, g);
+                    //this.setPosition(spNode, g);
                     g.addNode2(spNode);
                     g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
 
@@ -527,7 +567,8 @@ public class PushableTable implements DataTable, ActionListener {
             Parameter ubound = law.getParameter("UPPER_BOUND");
             ub = ubound.getValue();
             Parameter rflux = law.getParameter("FLUX_VALUE");
-            flux = rflux.getValue();
+            if(flux != null)
+                flux = rflux.getValue();
         }
         if (flux != null) {
             if (flux > 0) {

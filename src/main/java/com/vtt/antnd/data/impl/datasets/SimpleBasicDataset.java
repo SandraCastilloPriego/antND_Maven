@@ -143,6 +143,7 @@ public class SimpleBasicDataset implements Dataset {
 
     @Override
     public Graph getGraph() {
+           
         Model model = this.document.getModel();
         this.cofactors = NDCore.getCofactors();
         List<Node> nodeList = new ArrayList<>();
@@ -154,7 +155,8 @@ public class SimpleBasicDataset implements Dataset {
         try {
             // For eac reaction in the model, a Node is created in the graph
             
-            ListOf listOfReactions = model.getListOfReactions();            
+            ListOf listOfReactions = model.getListOfReactions(); 
+            //if (listOfReactions.size() > 1000) return null;
             for (int i = 0; i < model.getNumReactions(); i++) {
                 Reaction r = (Reaction) listOfReactions.get(i);
                 
@@ -206,7 +208,7 @@ public class SimpleBasicDataset implements Dataset {
                 }
 
             }
-        } catch (Exception e) {
+        } catch (Exception e) {         
             System.out.println(e.toString());
         }
         this.graph = g;
@@ -219,6 +221,8 @@ public class SimpleBasicDataset implements Dataset {
             Node gNode = this.graph.getNode(node.getId());
             if (gNode != null) {
                 node.setPosition(gNode.getPosition());
+            }else{
+                System.out.println(node.getId());
             }
         }
     }
@@ -234,8 +238,12 @@ public class SimpleBasicDataset implements Dataset {
             lb = lbound.getValue();
             Parameter ubound = law.getParameter("UPPER_BOUND");
             ub = ubound.getValue();
+            try{
             Parameter rflux = law.getParameter("FLUX_VALUE");            
-            flux = rflux.getValue();            
+            flux = rflux.getValue();         
+            }catch(Exception e ){
+                
+            }
         }
         if (flux != null) {
             if (flux > 0) {

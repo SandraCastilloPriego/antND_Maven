@@ -27,19 +27,21 @@ import java.awt.geom.Point2D;
 public class Node {
 
     private String id;
-    private String name;
+    private String name =null;
     private Point2D position;
     private Color color;
 
     public Node(String id) {
         this.id = id;
         this.color = null;
+        this.position = null;
     }
 
     public Node(String id, String name) {
         this.id = id;
         this.name = name;
         this.color = null;
+        this.position = null;
     } 
 
     public String getId() {

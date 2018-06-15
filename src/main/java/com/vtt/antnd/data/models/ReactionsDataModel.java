@@ -109,42 +109,39 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                 case "Reaction extended":
                     return getReactionExt(r,this.dataset.getDocument().getModel());
                 case "Lower bound":
-                    LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
+                    Parameter lp = r.getKineticLaw().getParameter("LOWER_BOUND");
                     if (lp == null) {
-                        lp = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
+                        lp = r.getKineticLaw().getParameter("LB_" + r.getId());
                     }
                     return lp.getValue();
                 case "Upper bound":
-                    lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
+                    lp = r.getKineticLaw().getParameter("UPPER_BOUND");
                     if (lp == null) {
-                        lp = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
+                        lp = r.getKineticLaw().getParameter("UB_" + r.getId());
                     }
                     return lp.getValue();
                 case "Notes":
                     String notes = r.getNotesString();
                     return notes;
                 case "Objective":
-                    lp = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
+                    lp = r.getKineticLaw().getParameter("OBJECTIVE_COEFFICIENT");
                     if(lp !=null) {
                         return lp.getValue();
                     }else{        
-                        Parameter parameter= new Parameter( (long) 0.0, (long) 0.0);
-                        parameter.setId( "OBJECTIVE_COEFFICIENT");
-                        r.getKineticLaw().addParameter(parameter);
-                        lp = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
-                        lp.setValue(0.0);
+                        Parameter parameter= r.getKineticLaw().createParameter();
+                        parameter.setId("OBJECTIVE_COEFFICIENT");
+                        parameter.setValue(0.0);
+                        r.getKineticLaw().addParameter(parameter);  
                         return 0.0;
                     }                    
                 case "Fluxes":
-                    LocalParameter flux = r.getKineticLaw().getLocalParameter("FLUX_VALUE");
+                    Parameter flux = r.getKineticLaw().getParameter("FLUX_VALUE");
                     if(flux !=null) {
                         return flux.getValue();
                     }else{
-                        Parameter parameter= new Parameter( (long) 0.0, (long) 0.0);
+                        Parameter parameter= r.getKineticLaw().createParameter();
                         parameter.setId( "FLUX_VALUE");
-                        r.getKineticLaw().addParameter(parameter);                      
-                        flux = r.getKineticLaw().getLocalParameter("FLUX_VALUE");
-                        flux.setValue(0.0);
+                        parameter.setValue(0.0);                        
                         return 0.0;
                     }
             }

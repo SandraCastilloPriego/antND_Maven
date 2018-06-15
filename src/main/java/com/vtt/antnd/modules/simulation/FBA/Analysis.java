@@ -138,13 +138,14 @@ public abstract class Analysis {
             this.reactionsList.add(r);
 
             for (String reactant : r.getReactants()) {
-                Boolean sp = model.getSpecies(reactant).getBoundaryCondition ();
+                boolean sp = model.getSpecies(reactant).getBoundaryCondition();
                 if (!sp) {
                     this.metabolitesList.add(reactant);
                 }
             }
             for (String product : r.getProducts()) {
-                Boolean sp = model.getSpecies(product).getBoundaryCondition ();
+               // System.out.println(product);
+                boolean sp = model.getSpecies(product).getBoundaryCondition();
                 if (!sp) {
                     this.metabolitesList.add(product);
                 }

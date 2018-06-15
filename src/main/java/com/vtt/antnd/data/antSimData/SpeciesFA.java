@@ -35,6 +35,7 @@ public class SpeciesFA {
     // List<String> combined;
     private double pool = 0;
     private final String name;
+    private boolean isBoundary= false;
 
     public SpeciesFA(String id, String name) {
         //this.ants = new ArrayList<>();
@@ -44,6 +45,14 @@ public class SpeciesFA {
         // this.combined = new ArrayList<>();
     }
 
+    public boolean isBoundary(){
+        return this.isBoundary;        
+    }
+    
+    public void setBoundary(boolean boundary){
+        this.isBoundary=boundary;
+    }
+    
     public Ant getAnt() {
         return this.shortestAnt;
         /*  if (!ants.isEmpty()) {

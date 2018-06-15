@@ -18,16 +18,23 @@
  */
 package com.vtt.antnd.main;
 
+import com.vtt.antnd.modules.analysis.clusteringBetweenness.ClusteringBetweennessModule;
+import com.vtt.antnd.modules.analysis.clusteringBicomponent.ClusteringBicomponentModule;
+import com.vtt.antnd.modules.analysis.clusteringkmeans.ClusteringModule;
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfModule;
 import com.vtt.antnd.modules.file.openProject.OpenProjectModule;
 import com.vtt.antnd.modules.file.openfile.OpenBasicFileModule;
 import com.vtt.antnd.modules.file.saveProject.SaveProjectModule;
 import com.vtt.antnd.modules.pathfinders.somePaths.SomePathsModule;
 import com.vtt.antnd.modules.pathfinders.superAnt.SuperAntModule;
+import com.vtt.antnd.modules.reactionOp.compareModels.CompareModule;
 import com.vtt.antnd.modules.reactionOp.showAllCompoundList.ShowAllCompoundsModule;
+import com.vtt.antnd.modules.reactionOp.showAllReaction.ShowAllReactionsModule;
 import com.vtt.antnd.modules.reactionOp.showCompound.ShowCompoundModule;
 import com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule;
 import com.vtt.antnd.modules.simulation.FBA.LPModule;
+import com.vtt.antnd.modules.simulation.pFBA.LPModuleMinimize;
+import com.vtt.antnd.modules.visualization.FBAVisualization.FluxAnalysisModule;
 
 
 
@@ -47,8 +54,15 @@ public class NDModulesList {
         ShowCompoundModule.class,
         ShowAllCompoundsModule.class,
         ShowReactionModule.class,
-        SomePathsModule.class,
+        ShowAllReactionsModule.class,
+        FluxAnalysisModule.class,
+        CompareModule.class,        
         SuperAntModule.class,
+        SomePathsModule.class,
         LPModule.class,
+        LPModuleMinimize.class,
+        ClusteringBetweennessModule.class,
+        ClusteringBicomponentModule.class,
+        ClusteringModule.class,
         };
 }

@@ -197,7 +197,7 @@ public class SuperAntModuleTask extends AbstractTask {
                 }
             } catch (NullPointerException e) {
             }
-            System.out.println("2");
+            //System.out.println("2");
             ListOf spref = r.getListOfProducts();
                 for (int e = 0; e < spref.size(); e++) {
                     SpeciesReference s = (SpeciesReference) spref.get(e);   
@@ -216,7 +216,7 @@ public class SuperAntModuleTask extends AbstractTask {
                         this.sources.put(sp.getId(), sb);
                     }
                 }
-                System.out.println("3");
+                //System.out.println("3");
                 reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
                 SpeciesFA spFA = this.compounds.get(sp.getId());
                 if (spFA != null) {
@@ -225,7 +225,7 @@ public class SuperAntModuleTask extends AbstractTask {
                     System.out.println(sp.getId());
                 }
             }
-            System.out.println("4");
+            //System.out.println("4");
             if (r.getListOfProducts().size() == 0) {
                 spref = r.getListOfReactants();
                 for (int e = 0; e < spref.size(); e++) {
@@ -248,14 +248,14 @@ public class SuperAntModuleTask extends AbstractTask {
             }
             this.reactions.put(r.getId(), reaction);
         }
-        System.out.println("5");
+      //  System.out.println("5");
         List<String> toBeRemoved = new ArrayList<>();
         for (String compound : compounds.keySet()) {
             if (compounds.get(compound).getReactions().isEmpty()) {
                 toBeRemoved.add(compound);
             }
         }
-        System.out.println("6");
+        //System.out.println("6");
         for (String compound : toBeRemoved) {
             this.compounds.remove(compound);
         }

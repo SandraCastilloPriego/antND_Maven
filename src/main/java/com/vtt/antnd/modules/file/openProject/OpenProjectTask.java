@@ -33,7 +33,6 @@ import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;
 import de.schlichtherle.truezip.zip.ZipEntry;
 import de.schlichtherle.truezip.zip.ZipFile;
-import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
@@ -163,15 +162,11 @@ public class OpenProjectTask extends AbstractTask {
                                 g = new Graph(null, null);
                             }
                             String nodeName = strLine.split("= ")[1];
-                            String position = null;
-                            int color = -1;
+                            String position = null;                           
                             if (nodeName.contains(" // ")) {
                                 String[] properties = nodeName.split(" // ");
                                 position = properties[1];
-                                nodeName = properties[0];
-                                if (properties.length > 2 && !properties[2].contains("null")) {
-                                    color = Integer.valueOf(properties[2]);
-                                }
+                                nodeName = properties[0];                               
                             }
                             String id = nodeName.split(" : ")[0];
                             String name = "";
@@ -184,10 +179,7 @@ public class OpenProjectTask extends AbstractTask {
                                 String[] point = position.split(" , ");
                                 n.setPosition(Double.valueOf(point[0]), Double.valueOf(point[1]));
                             }
-
-                            if (color != -1) {
-                                n.setColor(new Color(color));
-                            }
+                            
                             g.addNode(n);
 
                         } else if (strLine.contains("Edges= ")) {

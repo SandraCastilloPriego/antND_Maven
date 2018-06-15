@@ -51,6 +51,7 @@ public class ReactionFA {
         this.names = new HashMap<>();
         this.flux = new HashMap<>();
         this.path = new ArrayList<>();
+        this.finalFlux = 0.0;
     }
 
     public ReactionFA(String id, String name) {
@@ -62,6 +63,7 @@ public class ReactionFA {
         this.names = new HashMap<>();
         this.flux = new HashMap<>();
         this.path = new ArrayList<>();
+        this.finalFlux = 0.0;
     }
 
     @Override

@@ -21,8 +21,10 @@ package com.vtt.antnd.desktop.impl;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.desktop.Desktop;
 import com.vtt.antnd.main.NDCore;
+import com.vtt.antnd.modules.analysis.reports.ReportFBAParameters;
 import com.vtt.antnd.util.GUIUtils;
 import com.vtt.antnd.util.components.DragOrderedJList;
+import com.vtt.antnd.util.dialogs.ExitCode;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -437,11 +439,11 @@ public class ItemSelector extends JPanel implements ActionListener,
         Dataset[] selectedFiles = getSelectedDatasets();
         for (Dataset file : selectedFiles) {
             if (file != null && !file.isParent()) {
-                /* ReportFBAParameters parameters = new ReportFBAParameters();
+                 ReportFBAParameters parameters = new ReportFBAParameters();
                  if (NDCore.getDesktop().getParameteresReport() != null) {
                  parameters.getParameter(ReportFBAParameters.fileName).setValue(NDCore.getDesktop().getParameteresReport());
                  }
-                 ExitCode exit = parameters.showSetupDialog();*/
+                 ExitCode exit = parameters.showSetupDialog();
                 // if (exit == ExitCode.OK) {
              //   ReportFBATask task = new ReportFBATask(file, null);
               //  task.run();
