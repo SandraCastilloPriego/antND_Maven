@@ -24,7 +24,7 @@ import com.vtt.antnd.data.network.Edge;
 import com.vtt.antnd.data.network.Graph;
 import com.vtt.antnd.data.network.Node;
 import com.vtt.antnd.data.network.uniqueId;
-import com.vtt.antnd.modules.configuration.general.GetInfoAndTools;
+import com.vtt.antnd.util.GetInfoAndTools;
 import com.vtt.antnd.modules.simulation.FBA.FBA;
 import com.vtt.antnd.parameters.SimpleParameterSet;
 import com.vtt.antnd.util.taskControl.AbstractTask;

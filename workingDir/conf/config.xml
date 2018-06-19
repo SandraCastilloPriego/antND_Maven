@@ -4,7 +4,7 @@
         <module class="com.vtt.antnd.modules.file.openfile.OpenBasicFileModule">
             <parameters>
                 <parameter name="File name">
-                    <file>file.sbml</file>
+                    <file>/home/scsandra/Documents/projects/MyTech/C1-curation/data/models/C1/C1-clean.sbml</file>
                 </parameter>
             </parameters>
         </module>
@@ -25,7 +25,7 @@
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showCompound.ShowCompoundModule">
             <parameters>
-                <parameter name="Compound name">tryptophan</parameter>
+                <parameter name="Compound name">ryptophan</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showAllCompoundList.ShowAllCompoundsModule">
@@ -33,7 +33,7 @@
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule">
             <parameters>
-                <parameter name="Reaction name">t</parameter>
+                <parameter name="Reaction name">R_FIFTHINT_c</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showAllReaction.ShowAllReactionsModule">
@@ -66,18 +66,27 @@
         <module class="com.vtt.antnd.modules.simulation.pFBA.LPModuleMinimize">
             <parameters/>
         </module>
-        <module class="com.vtt.antnd.modules.analysis.clusteringBetweenness.ClusteringBetweennessModule">
-            <parameters>
-                <parameter name="Number of edges to remove">20</parameter>
-            </parameters>
-        </module>
         <module class="com.vtt.antnd.modules.analysis.clusteringBicomponent.ClusteringBicomponentModule">
             <parameters/>
         </module>
         <module class="com.vtt.antnd.modules.analysis.clusteringkmeans.ClusteringModule">
             <parameters>
-                <parameter name="Number of clusters">2</parameter>
+                <parameter name="Number of clusters">10</parameter>
             </parameters>
+        </module>
+        <module class="com.vtt.antnd.modules.analysis.KNeighborhood.KNeighborhoodModule">
+            <parameters>
+                <parameter name="Radius">2</parameter>
+                <parameter name="Root node">M_YORT680D_c</parameter>
+            </parameters>
+        </module>
+        <module class="com.vtt.antnd.modules.analysis.clusteringBetweenness.ClusteringBetweennessModule">
+            <parameters>
+                <parameter name="Number of edges to remove">20</parameter>
+            </parameters>
+        </module>
+        <module class="com.vtt.antnd.modules.analysis.CycleDetection.CycleDetectorModule">
+            <parameters/>
         </module>
         <module class="ParameterPath">
             <parameters/>

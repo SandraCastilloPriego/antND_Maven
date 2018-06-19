@@ -26,10 +26,11 @@
             <version>5.15.0</version>
             <type>jar</type>
         </dependency>
+   
         <dependency>
-            <groupId>jgrapht</groupId>
-            <artifactId>jgrapht</artifactId>
-            <version>0.7.3</version>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.freehep</groupId>

@@ -1,0 +1,215 @@
+/*
+ * Copyright 2013-2014 VTT Biotechnology
+ * This file is part of AntND.
+ *
+ * AntND is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any later
+ * version.
+ *
+ * AntND is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * AntND; if not, write to the Free Software Foundation, Inc., 51 Franklin St,
+ * Fifth Floor, Boston, MA 02110-1301 USA
+ */
+package com.vtt.antnd.modules.analysis.KNeighborhood;
+
+
+import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
+import com.vtt.antnd.data.network.Edge;
+import com.vtt.antnd.data.network.Graph;
+import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.uniqueId;
+import com.vtt.antnd.main.NDCore;
+import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
+import com.vtt.antnd.util.GetInfoAndTools;
+import com.vtt.antnd.parameters.SimpleParameterSet;
+import com.vtt.antnd.util.taskControl.AbstractTask;
+import com.vtt.antnd.util.taskControl.TaskStatus;
+import edu.uci.ics.jung.algorithms.filters.KNeighborhoodFilter;
+import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
+import edu.uci.ics.jung.graph.util.EdgeType;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.sbml.libsbml.ListOf;
+import org.sbml.libsbml.Model;
+import org.sbml.libsbml.Reaction;
+import org.sbml.libsbml.Species;
+import org.sbml.libsbml.SpeciesReference;
+
+/**
+ *
+ * @author scsandra
+ */
+public class KNeighborhoodTask extends AbstractTask {
+
+    private final SimpleBasicDataset networkDS;
+    private final int radiusk;
+    private final String rootNode;
+    private double finishedPercentage = 0.0f;
+    private final List<String> cofactors;
+
+    public KNeighborhoodTask(SimpleBasicDataset dataset, SimpleParameterSet parameters) {
+        networkDS = dataset;
+        this.radiusk = parameters.getParameter(KNeighborhoodParameters.radiusK).getValue();
+        this.rootNode = parameters.getParameter(KNeighborhoodParameters.rootNode).getValue();
+        //String excluded = parameters.getParameter(KNeighborhoodParameters.excluded).getValue();
+        this.cofactors = new ArrayList<>();
+        CofactorConfParameters conf = new CofactorConfParameters();
+        String excluded = conf.getParameter(CofactorConfParameters.cofactors).getValue().replaceAll("[\\s|\\u00A0]+", "");
+        System.out.println(excluded);
+        String[] excludedCompounds = excluded.split(",");
+        this.cofactors.addAll(Arrays.asList(excludedCompounds));
+        //String[] excludedCompounds = excluded.split(",");
+        //for (String cofactor : excludedCompounds) {
+        //    this.cofactors.add(cofactor);
+        //}
+
+    }
+
+    @Override
+    public String getTaskDescription() {
+        return "Clustering... ";
+    }
+
+    @Override
+    public double getFinishedPercentage() {
+        return finishedPercentage;
+    }
+
+    @Override
+    public void cancel() {
+        setStatus(TaskStatus.CANCELED);
+    }
+
+    @Override
+    public void run() {
+        try {
+            setStatus(TaskStatus.PROCESSING);
+            if (this.networkDS == null) {
+                setStatus(TaskStatus.ERROR);
+                NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
+            }
+            
+            Graph graph = this.networkDS.getGraph();
+            if (graph == null) {
+                graph = createGraph();
+            }
+
+            edu.uci.ics.jung.graph.Graph<String, String> g = this.getGraphForClustering(graph);
+            String root = findTheRoot(this.rootNode, g);
+            KNeighborhoodFilter filter = new KNeighborhoodFilter(root, this.radiusk, KNeighborhoodFilter.EdgeType.OUT);
+            edu.uci.ics.jung.graph.Graph<String, String> g2 = filter.transform(g);
+
+            createDataSet(g2);
+
+            finishedPercentage = 1.0f;
+            setStatus(TaskStatus.FINISHED);
+        } catch (Exception e) {
+            setStatus(TaskStatus.ERROR);
+            errorMessage = e.toString();
+        }
+    }
+
+    public edu.uci.ics.jung.graph.Graph<String, String> getGraphForClustering(Graph graph) {
+        edu.uci.ics.jung.graph.Graph<String, String> g = new DirectedSparseMultigraph<>();
+
+        List<Node> nodes = graph.getNodes();
+        List<Edge> edges = graph.getEdges();
+        System.out.println("Number of nodes: " + nodes.size() + " - " + edges.size());
+
+        for (Node node : nodes) {
+            if (node != null) {
+                g.addVertex(node.getId());
+            }
+        }
+
+        for (Edge edge : edges) {
+            if (edge != null) {
+                g.addEdge(edge.getId(), edge.getSource().getId(), edge.getDestination().getId(), EdgeType.DIRECTED);
+            }
+        }
+        return g;
+
+    }
+
+    private void createDataSet(edu.uci.ics.jung.graph.Graph<String, String> g) {
+        Map<String, Node> nodesMap = new HashMap<>();
+        List<Node> nodes = new ArrayList<>();
+        for (String n : g.getVertices()) {
+            Node node = new Node(n);
+            nodes.add(node);
+            nodesMap.put(n, node);
+        }
+        List<Edge> edges = new ArrayList<>();
+        for (String n : g.getEdges()) {
+            // System.out.println(g.toString());
+            System.out.println(n + " - " + g.getSource(n) + " - " + g.getDest(n));
+            Edge e = new Edge(n, nodesMap.get(g.getSource(n)), nodesMap.get(g.getDest(n)));
+            edges.add(e);
+        }
+        Graph graph = new Graph(nodes, edges);
+        new GetInfoAndTools().createDataFile(graph, this.networkDS, "KNeighbourhood", this.networkDS.getSources(), false, false);
+
+    }
+
+    private String findTheRoot(String rootNode, edu.uci.ics.jung.graph.Graph<String, String> g) {
+        for (String s : g.getVertices()) {
+            if (s.equals(rootNode)) {
+                return s;
+            }
+        }
+        return rootNode;
+    }
+
+    private Graph createGraph() {
+        Model m = this.networkDS.getDocument().getModel();
+        Graph g = new Graph(null, null);
+        ListOf reactions = m.getListOfReactions();
+        for (int i= 0; i < reactions.size();i++) {
+            Reaction reaction = (Reaction) reactions.get(i);
+            Node reactionNode = new Node(reaction.getId());
+            g.addNode2(reactionNode);
+
+            ListOf spref = reaction.getListOfReactants();
+            for (int e = 0; e< spref.size();e++) {
+                SpeciesReference reactant = (SpeciesReference) spref.get(e);
+                Species sp = m.getSpecies(reactant.getSpecies());
+                if (!this.cofactors.contains(sp.getId())) {
+                    Node reactantNode = g.getNode(sp.getId());
+                    if (reactantNode == null) {
+                        reactantNode = new Node(sp.getId(), sp.getName());
+                    }
+                    g.addNode2(reactantNode);
+                    Edge edge = new Edge(reaction.getId() + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+
+                    g.addEdge(edge);
+                }
+            }
+            
+            spref = reaction.getListOfReactants();
+            for (int e = 0; e< spref.size();e++) {
+                SpeciesReference product = (SpeciesReference) spref.get(e);
+                Species sp = m.getSpecies(product.getSpecies());
+                if (!this.cofactors.contains(sp.getId())) {
+                    Node reactantNode = g.getNode(sp.getId());
+                    if (reactantNode == null) {
+                        reactantNode = new Node(sp.getId(), sp.getName());
+                    }
+                    g.addNode2(reactantNode);
+                    Edge edge = new Edge(reaction.getName() + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+
+                    g.addEdge(edge);
+                }
+            }
+        }
+
+        return g;
+    }
+}

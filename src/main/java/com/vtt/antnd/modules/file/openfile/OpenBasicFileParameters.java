@@ -46,7 +46,7 @@ public class OpenBasicFileParameters extends SimpleParameterSet {
                         File currentDir = lastFiles[0].getParentFile();
                         if (currentDir.exists()) {
                                 chooser.setCurrentDirectory(currentDir);
-                        }
+                        }else{}
                 }
 
                 chooser.setMultiSelectionEnabled(true);

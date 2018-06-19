@@ -18,6 +18,8 @@
  */
 package com.vtt.antnd.main;
 
+import com.vtt.antnd.modules.analysis.CycleDetection.CycleDetectorModule;
+import com.vtt.antnd.modules.analysis.KNeighborhood.KNeighborhoodModule;
 import com.vtt.antnd.modules.analysis.clusteringBetweenness.ClusteringBetweennessModule;
 import com.vtt.antnd.modules.analysis.clusteringBicomponent.ClusteringBicomponentModule;
 import com.vtt.antnd.modules.analysis.clusteringkmeans.ClusteringModule;
@@ -60,9 +62,12 @@ public class NDModulesList {
         SuperAntModule.class,
         SomePathsModule.class,
         LPModule.class,
-        LPModuleMinimize.class,
-        ClusteringBetweennessModule.class,
+        LPModuleMinimize.class,        
         ClusteringBicomponentModule.class,
-        ClusteringModule.class,
+        ClusteringModule.class,        
+        KNeighborhoodModule.class,
+        ClusteringBetweennessModule.class,
+        CycleDetectorModule.class,
+        
         };
 }

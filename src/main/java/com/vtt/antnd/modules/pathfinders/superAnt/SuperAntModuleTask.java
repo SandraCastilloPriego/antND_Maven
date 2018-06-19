@@ -27,7 +27,7 @@ import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.desktop.impl.PrintPaths;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
-import com.vtt.antnd.modules.configuration.general.GetInfoAndTools;
+import com.vtt.antnd.util.GetInfoAndTools;
 import com.vtt.antnd.parameters.SimpleParameterSet;
 import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;

@@ -15,7 +15,7 @@
  * AntND; if not, write to the Free Software Foundation, Inc., 51 Franklin St,
  * Fifth Floor, Boston, MA 02110-1301 USA
  */
-package com.vtt.antnd.modules.configuration.general;
+package com.vtt.antnd.util;
 
 
 
@@ -103,12 +103,12 @@ public class GetInfoAndTools {
                     }
                 }
             } catch (IOException ex) {
-                Logger.getLogger(com.vtt.antnd.modules.configuration.general.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(com.vtt.antnd.util.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
             }
 
             return pathwaysMap;
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(com.vtt.antnd.modules.configuration.general.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(com.vtt.antnd.util.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
         }
         return pathwaysMap;
     }
@@ -176,7 +176,7 @@ public class GetInfoAndTools {
         } catch (FileNotFoundException ex) {
             System.out.println("No bounds added to the reactions");
         } catch (IOException ex) {
-            java.util.logging.Logger.getLogger(com.vtt.antnd.modules.configuration.general.GetInfoAndTools.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(com.vtt.antnd.util.GetInfoAndTools.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         return b;
     }
