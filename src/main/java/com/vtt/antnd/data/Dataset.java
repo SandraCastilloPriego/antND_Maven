@@ -27,9 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JTextArea;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+
 
 /**
  * Interface for data set
@@ -179,4 +180,8 @@ public interface Dataset {
         public boolean isParent();  
         
         public void setIsParent(boolean isParent);
+        
+        public void setFlux(String reaction, Double flux);
+        
+        public Double getFlux(String reaction);
 }

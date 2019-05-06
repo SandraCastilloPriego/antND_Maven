@@ -48,12 +48,13 @@ import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.general.PieDataset;
 import org.jfree.util.Rotation;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+
 
 
 /**
@@ -62,13 +63,13 @@ import org.sbml.libsbml.SpeciesReference;
  */
 public class ReportFBATask extends AbstractTask {
 
-    private Dataset data;
+    private Dataset dataset;
     private File fileName;
     private double finishedPercentage = 0.0f;
 
     public ReportFBATask(Dataset data, ParameterSet parameters) {
         // this.fileName = parameters.getParameter(ReportFBAParameters.fileName).getValue();
-        this.data = data;
+        this.dataset = data;
     }
 
     @Override
@@ -161,14 +162,13 @@ public class ReportFBATask extends AbstractTask {
 
     }
 
-    public static CategoryDataset createBarExchangeDataset(Model m) {
+    public CategoryDataset createBarExchangeDataset(Model m) {
         final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         ListOf listOfReactions = m.getListOfReactions();
         for (int i = 0; i < m.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
             if (r.getName().contains("exchange") || r.getName().contains("growth")) {
-                KineticLaw law = r.getKineticLaw();
-                double flux = law.getLocalParameter("FLUX_VALUE").getValue();
+                double flux = this.dataset.getFlux(r.getId());
                 if (flux < 0) {
                     dataset.addValue(flux, "Exchanges In", r.getName());
                 } else {
@@ -180,13 +180,12 @@ public class ReportFBATask extends AbstractTask {
         return dataset;
     }
 
-    public static CategoryDataset createBarDataset(Model m) {
+    public  CategoryDataset createBarDataset(Model m) {
         Map<String, Double> data = new HashMap<>();
         ListOf listOfReactions = m.getListOfReactions();
         for (int i = 0; i < m.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
-            KineticLaw law = r.getKineticLaw();
-            double flux = law.getParameter("FLUX_VALUE").getValue();
+            double flux = dataset.getFlux(r.getId());
             double realFlux = 0;
             if (flux > 500) {
                 realFlux = Math.abs(1000 - flux);
@@ -254,7 +253,7 @@ public class ReportFBATask extends AbstractTask {
 
             report
                 .setTemplate(Templates.reportTemplate)
-                .title(Templates.createTitleComponent(this.data.getDatasetName()))
+                .title(Templates.createTitleComponent(this.dataset.getDatasetName()))
                 .setSummarySplitType(SplitType.IMMEDIATE)
                 .summary(
                     cmp.subreport(ChangesReport()),
@@ -279,26 +278,26 @@ public class ReportFBATask extends AbstractTask {
     }
 
     private JasperReportBuilder ChangesReport() throws DRException {
-        return new ChangesReport(this.data).build();
+        return new ChangesReport(this.dataset).build();
     }
 
     private JasperReportBuilder ExchangesReportPie() throws DRException {
-        return new ExchangesReportPie(this.data).build();
+        return new ExchangesReportPie(this.dataset).build();
     }
 
     private JasperReportBuilder ExchangesReportBar() throws DRException {
-        return new ExchangesReportBar(this.data).build();
+        return new ExchangesReportBar(this.dataset).build();
     }
 
     private JasperReportBuilder ImportantFluxesReport() throws DRException {
-        return new ImportantFluxesReport(this.data).build();
+        return new ImportantFluxesReport(this.dataset).build();
     }
 
     private JasperReportBuilder OxygenReport() throws DRException {
-        return new OxygenReport(this.data).build();
+        return new OxygenReport(this.dataset).build();
     }
 
     private JasperReportBuilder CofactorReport() throws DRException {
-        return new CofactorReport(this.data).build();
+        return new CofactorReport(this.dataset).build();
     }
 }

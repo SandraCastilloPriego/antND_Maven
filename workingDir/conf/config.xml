@@ -4,7 +4,7 @@
         <module class="com.vtt.antnd.modules.file.openfile.OpenBasicFileModule">
             <parameters>
                 <parameter name="File name">
-                    <file>/home/scsandra/Documents/projects/MyTech/C1-curation/data/models/C1/C1-clean.sbml</file>
+                    <file>/home/scsandra/Documents/projects/models/universalPaulas_v2.5.sbml</file>
                 </parameter>
             </parameters>
         </module>
@@ -20,12 +20,12 @@
         </module>
         <module class="com.vtt.antnd.modules.configuration.cofactors.CofactorConfModule">
             <parameters>
-                <parameter name="Cofactor ids">CofactorIds</parameter>
+                <parameter name="Cofactor ids">M_h_c,M_h_m,M_h_x,M_h_r,M_h_g,M_h_n,M_h_l,M_o2s_c,M_o2s_m,M_o2s_x,M_h2o_x,M_h2o_c,M_h2o_m,M_h2o_n,M_h2o_r,M_h2o_g,M_h2o_l,M_h2o_e,M_nadph_m,M_nadph_c,M_nadph_x,M_nadph_r,M_nadph_g,M_nadph_l,M_fmn_c,M_fmn_m,M_fmn_x,M_nadp_m,M_nadp_c,M_nadp_x,M_nadp_g,M_nadp_r,M_nadp_n,M_nadp_l,M_adp_c,M_adp_m,M_adp_x,M_atp_c,M_atp_m,M_atp_x,M_atp_r,M_atp_g,M_atp_n,M_atp_l,M_cmp_m,M_cmp_c,M_cmp_x,M_co2_c,M_co2_m,M_co2_x,M_co2_n,M_co2_r,M_co2_e,M_coa_x,M_coa_c,M_coa_e,M_coa_n,M_coa_m,M_coa_x,M_ctp_c,M_ctp_m,M_nad_c,M_nad_m,M_nad_x,M_nad_n,M_nad_g,M_nad_l,M_nadh_m,M_nadh_c,M_nadh_x,M_nadh_n,M_nadh_r,M_nadh_l,M_nadh_g,M_nh4_c,M_nh4_e,M_nh4_x,M_nh4_m,M_udp_c,M_udp_m,M_ump_c,M_ump_e,M_ump_m,M_o2s_c,M_acald_m,M_acald_c,M_acald_x,M_acoa_c,M_acoa_x,M_acoa_m,M_ACP_c,M_ACP_x,M_ACP_m,M_amp_c,M_amp_m,M_amp_x,M_cdp_c,M_cmp_c,M_cmp_x,M_cmp_m,M_cmp_e,M_co_c,M_dadp_c,M_damp_c,M_datp_c,M_dcdp_c,M_dcmp_c,M_dctp_c,M_dtdp_c,M_dtmp_c,M_dtmp_e,M_dttp_c,M_dttp_e,M_dudp_c,M_dudp_e,M_dutp_c,M_fad_c,M_fad_m,M_fadh2_m,M_fe2_c,M_fe2_e,M_fe2_m,M_fmn_c,M_fmn_e,M_gtp_c,M_idp_c,M_imp_c,M_itp_c,M_nmn_c,M_nmn_e,M_o2_c,M_o2_e,M_o2_m,M_o2_r,M_o2_x,M_o2s_c,M_o2s_e,M_o2s_m,M_utp_c,M_utp_m,M_pi_c,M_pi_m,M_pi_x,M_pi_n,M_pi_l,M_pi_r,M_pi_g,M_ppi_c,M_ppi_m,M_ppi_x,M_ppi_r,M_h2o2_c,M_h2o2_m,M_h2o2_x,M_h_e,M_gluL_c,M_gluL_m,M_gluL_x,M_gly_c,M_gly_x,M_gly_m,M_pyr_c,M_pyr_m,M_pyr_x</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showCompound.ShowCompoundModule">
             <parameters>
-                <parameter name="Compound name">ryptophan</parameter>
+                <parameter name="Compound name">M_fad_x</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showAllCompoundList.ShowAllCompoundsModule">
@@ -33,7 +33,7 @@
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule">
             <parameters>
-                <parameter name="Reaction name">R_FIFTHINT_c</parameter>
+                <parameter name="Reaction name">s_0745</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.reactionOp.showAllReaction.ShowAllReactionsModule">
@@ -50,13 +50,13 @@
         </module>
         <module class="com.vtt.antnd.modules.pathfinders.superAnt.SuperAntModule">
             <parameters>
-                <parameter name="Compound ID">M_U3ZT3O82_m</parameter>
+                <parameter name="Compound ID">M_10Zhpda_c</parameter>
                 <parameter name="Number of Iterations">100</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.pathfinders.somePaths.SomePathsModule">
             <parameters>
-                <parameter name="Compound ID">M_U3ZT3O82_m</parameter>
+                <parameter name="Compound ID">M_dcamp_c</parameter>
                 <parameter name="Number of Iterations">100</parameter>
             </parameters>
         </module>
@@ -76,8 +76,8 @@
         </module>
         <module class="com.vtt.antnd.modules.analysis.KNeighborhood.KNeighborhoodModule">
             <parameters>
-                <parameter name="Radius">2</parameter>
-                <parameter name="Root node">M_YORT680D_c</parameter>
+                <parameter name="Radius">10</parameter>
+                <parameter name="Root node">M_4TPJWFAK_c</parameter>
             </parameters>
         </module>
         <module class="com.vtt.antnd.modules.analysis.clusteringBetweenness.ClusteringBetweennessModule">

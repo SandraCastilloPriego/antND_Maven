@@ -41,15 +41,15 @@ import java.util.Map;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
-
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -73,13 +73,13 @@ public class SuperAntModuleTask extends AbstractTask {
     public SuperAntModuleTask(SimpleBasicDataset dataset, SimpleParameterSet parameters) {
         this.networkDS = dataset;
         this.biomassID = parameters.getParameter(SuperAntModuleParameters.objectiveReaction).getValue();
-        this.iterations = parameters.getParameter(SuperAntModuleParameters.numberOfIterations).getValue();        
+        this.iterations = parameters.getParameter(SuperAntModuleParameters.numberOfIterations).getValue();
         this.sourcesList = new ArrayList<>();
         this.sources = new HashMap<>();
         this.cofactors = new ArrayList<>();
         CofactorConfParameters conf = new CofactorConfParameters();
         String excluded = conf.getParameter(CofactorConfParameters.cofactors).getValue().replaceAll("[\\s|\\u00A0]+", "");
-        System.out.println(excluded);
+       // System.out.println(excluded);
         String[] excludedCompounds = excluded.split(",");
         this.cofactors.addAll(Arrays.asList(excludedCompounds));
 
@@ -157,31 +157,41 @@ public class SuperAntModuleTask extends AbstractTask {
     private void createWorld() {
         SBMLDocument doc = this.networkDS.getDocument();
         Model m = doc.getModel();
-        ListOf species = m.getListOfSpecies();
-        for (int i = 0; i < species.size(); i++) {
-            Species s = (Species) species.get(i);
+        // ListOf species = m.getListOfSpecies();
+        //for (int i = 0; i < species.size(); i++) {
+        //    Species s = (Species) species.get(i);
+        for (Species s : m.getListOfSpecies()) {
             SpeciesFA specie = new SpeciesFA(s.getId(), s.getName());
             this.compounds.put(s.getId(), specie);
         }
-        ListOf reactions = m.getListOfReactions();
-        for (int i = 0; i < reactions.size();i++) {
-            Reaction r = (Reaction) reactions.get(i);
+        // ListOf reactions = m.getListOfReactions();
+        // for (int i = 0; i < reactions.size();i++) {
+        //     Reaction r = (Reaction) reactions.get(i);
+        for (Reaction r : m.getListOfReactions()) {
             boolean biomass = false;
 
             ReactionFA reaction = new ReactionFA(r.getId());
             try {
                 KineticLaw law = r.getKineticLaw();
-                Parameter lbound = law.getParameter("LOWER_BOUND");
-                Parameter ubound = law.getParameter("UPPER_BOUND");
+                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                 reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {
-                reaction.setBounds(-1000, 1000);
+                try {
+                    FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                    Parameter lp = plugin.getLowerFluxBoundInstance();
+                    Parameter up = plugin.getUpperFluxBoundInstance();
+                    reaction.setBounds(lp.getValue(), up.getValue());
+                } catch (Exception ex2) {
+                    reaction.setBounds(-1000, 1000);
+                }
             }
             System.out.println("1" + r.getId());
             try {
-                ListOf spref = r.getListOfReactants();
-                for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference s = (SpeciesReference) spref.get(e);   
+                // ListOf spref = r.getListOfReactants();
+                //for (int e = 0; e < spref.size(); e++) {
+                //    SpeciesReference s = (SpeciesReference) spref.get(e);   
+                for (SpeciesReference s : r.getListOfReactants()) {
                     Species sp = s.getModel().getSpecies(s.getSpecies());
 
                     reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
@@ -198,10 +208,11 @@ public class SuperAntModuleTask extends AbstractTask {
             } catch (NullPointerException e) {
             }
             //System.out.println("2");
-            ListOf spref = r.getListOfProducts();
-                for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference s = (SpeciesReference) spref.get(e);   
-                    Species sp = s.getModel().getSpecies(s.getSpecies());
+            // ListOf spref = r.getListOfProducts();
+            //     for (int e = 0; e < spref.size(); e++) {
+            //        SpeciesReference s = (SpeciesReference) spref.get(e);   
+            for (SpeciesReference s : r.getListOfProducts()) {
+                Species sp = s.getModel().getSpecies(s.getSpecies());
 
                 if (sp.getName().contains("boundary") && reaction.getlb() < 0) {
                     SpeciesFA specie = this.compounds.get(sp.getId());
@@ -227,9 +238,10 @@ public class SuperAntModuleTask extends AbstractTask {
             }
             //System.out.println("4");
             if (r.getListOfProducts().size() == 0) {
-                spref = r.getListOfReactants();
-                for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference s = (SpeciesReference) spref.get(e);   
+                //spref = r.getListOfReactants();
+                //for (int e = 0; e < spref.size(); e++) {
+                //    SpeciesReference s = (SpeciesReference) spref.get(e);   
+                for (SpeciesReference s : r.getListOfReactants()) {
                     Species sp = s.getModel().getSpecies(s.getSpecies());
                     SpeciesFA specie = this.compounds.get(sp.getId());
                     if (specie.getAnt() == null) {
@@ -248,7 +260,7 @@ public class SuperAntModuleTask extends AbstractTask {
             }
             this.reactions.put(r.getId(), reaction);
         }
-      //  System.out.println("5");
+        //  System.out.println("5");
         List<String> toBeRemoved = new ArrayList<>();
         for (String compound : compounds.keySet()) {
             if (compounds.get(compound).getReactions().isEmpty()) {
@@ -423,36 +435,35 @@ public class SuperAntModuleTask extends AbstractTask {
         Graph previousG = this.networkDS.getGraph();
 
         for (String r : path.keySet()) {
-            System.out.println(r);
+           // System.out.println(r);
             ReactionFA reaction = reactions.get(r);
-            if (reaction != null) {                
+            if (reaction != null) {
                 Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFlux()));
-               // if (previousG != null) {
-               //     reactionNode.setPosition(previousG.getNode(reaction.getId()).getPosition());
-               // }
-               
+                // if (previousG != null) {
+                //     reactionNode.setPosition(previousG.getNode(reaction.getId()).getPosition());
+                // }
+
                 g.addNode2(reactionNode);
 
                 for (String reactant : reaction.getReactants()) {
                     SpeciesFA sp = compounds.get(reactant);
-                   
+
                     Node reactantNode = g.getNode(reactant);
                     if (reactantNode == null) {
                         reactantNode = new Node(reactant, sp.getName());
                     }
-                
-                   // if (previousG != null) {
+
+                    // if (previousG != null) {
                     //    reactantNode.setPosition(previousG.getNode(reactant).getPosition());
                     //}
                     g.addNode2(reactantNode);
                     if (sp.getId().equals(this.biomassID)) {
                         reactantNode.setColor(Color.red);
                     }
-                  
+
                     if (this.sourcesList.contains(sp.getId())) {
                         reactantNode.setColor(Color.MAGENTA);
                     }
-
 
                     Edge e;
                     if (path.get(r)) {
@@ -469,9 +480,9 @@ public class SuperAntModuleTask extends AbstractTask {
                     if (reactantNode == null) {
                         reactantNode = new Node(product, sp.getName());
                     }
-                   // if (previousG != null) {
+                    // if (previousG != null) {
                     //    reactantNode.setPosition(previousG.getNode(product).getPosition());
-                   // }
+                    // }
                     g.addNode2(reactantNode);
                     if (sp.getId().equals(this.biomassID)) {
                         reactantNode.setColor(Color.red);

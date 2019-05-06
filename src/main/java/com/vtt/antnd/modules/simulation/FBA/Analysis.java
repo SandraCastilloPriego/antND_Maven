@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sbml.libsbml.Model;
+import org.sbml.jsbml.Model;
 
 public abstract class Analysis {
 
@@ -24,7 +24,7 @@ public abstract class Analysis {
     protected void setVars() {
         for (ReactionFA r : reactionsList) {
             String varName = Integer.toString(this.reactionPositionMap.get(r.getId()));
-            //System.out.println(r.getId() + ": " + varName + ": " + r.getlb() + " ," + r.getub());            
+            System.out.println(r.getId() + ": " + varName + ": " + r.getlb() + " ," + r.getub());            
             this.getSolver().setVar(varName, VarType.CONTINUOUS, r.getlb(), r.getub());
 
         }

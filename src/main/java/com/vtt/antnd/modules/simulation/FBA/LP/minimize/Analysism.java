@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sbml.libsbml.Model;
+import org.sbml.jsbml.Model;
 
 public abstract class Analysism {
 

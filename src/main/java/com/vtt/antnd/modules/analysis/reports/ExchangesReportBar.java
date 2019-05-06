@@ -29,10 +29,10 @@ import net.sf.jasperreports.engine.JRDataSource;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
 
 
 /**
@@ -102,7 +102,7 @@ public class ExchangesReportBar {
         for (int e=0; e< reactions.size(); e++) {
             Reaction r = (Reaction) reactions.get(e);
             KineticLaw law = r.getKineticLaw();
-            double flux = law.getParameter("FLUX_VALUE").getValue();
+            double flux = law.getLocalParameter("FLUX_VALUE").getValue();
             if (Math.abs(flux) >= 0.0001) {
                 i++;
             }

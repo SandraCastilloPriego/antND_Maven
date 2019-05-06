@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.modules.pathfinders.somePaths;
 
-
 import com.vtt.antnd.data.antSimData.Ant;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
@@ -42,14 +41,16 @@ import java.util.Map;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -76,7 +77,7 @@ public class SomePathsTask extends AbstractTask {
         this.networkDS = dataset;
         this.biomassID = parameters.getParameter(SomePathsParameters.objectiveReaction).getValue();
         this.iterations = parameters.getParameter(SomePathsParameters.numberOfIterations).getValue();
-       
+
         this.sourcesList = new ArrayList<>();
 
         this.sources = new HashMap<>();
@@ -87,7 +88,6 @@ public class SomePathsTask extends AbstractTask {
         String[] excludedCompounds = excluded.split(",");
         this.cofactors.addAll(Arrays.asList(excludedCompounds));
 
-       
         this.reactions = new HashMap<>();
         this.compounds = new HashMap<>();
         this.bounds = new HashMap<>();
@@ -95,7 +95,7 @@ public class SomePathsTask extends AbstractTask {
         this.frame = new JInternalFrame("Result", true, true, true, true);
         this.pn = new JPanel();
         this.panel = new JScrollPane(pn);
-        this.tools = new GetInfoAndTools();       
+        this.tools = new GetInfoAndTools();
 
     }
 
@@ -139,7 +139,7 @@ public class SomePathsTask extends AbstractTask {
             }
             if (getStatus() == TaskStatus.PROCESSING) {
                 Ant ant = this.compounds.get(this.biomassID).getAnt();
-                System.out.println("location: "+ ant.getLocation());
+                System.out.println("location: " + ant.getLocation());
                 Graph g = this.createGraph(ant.getPath());
                 this.tools.createDataFile(g, networkDS, biomassID, sourcesList, false, false);
                 PrintPaths print = new PrintPaths(this.tools.getModel());
@@ -165,14 +165,14 @@ public class SomePathsTask extends AbstractTask {
         SBMLDocument doc = this.networkDS.getDocument();
         Model m = doc.getModel();
         ListOf species = m.getListOfSpecies();
-        for (int i =0; i< species.size();i++) {
+        for (int i = 0; i < species.size(); i++) {
             Species s = (Species) species.get(i);
             SpeciesFA specie = new SpeciesFA(s.getId(), s.getName());
             this.compounds.put(s.getId(), specie);
         }
 
         ListOf reactions = m.getListOfReactions();
-        for (int i =0; i < reactions.size(); i++) {
+        for (int i = 0; i < reactions.size(); i++) {
             Reaction r = (Reaction) reactions.get(i);
             boolean biomass = false;
             //System.out.println(r.getId());
@@ -183,11 +183,18 @@ public class SomePathsTask extends AbstractTask {
             } else {
                 try {
                     KineticLaw law = r.getKineticLaw();
-                    Parameter lbound = law.getParameter("LOWER_BOUND");
-                    Parameter ubound = law.getParameter("UPPER_BOUND");
-                    reaction.setBounds(lbound.getValue(), ubound.getValue());                    
+                    LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                    LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+                    reaction.setBounds(lbound.getValue(), ubound.getValue());
                 } catch (Exception ex) {
-                    reaction.setBounds(-1000, 1000);
+                    try {
+                        FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                        Parameter lp = plugin.getLowerFluxBoundInstance();
+                        Parameter up = plugin.getUpperFluxBoundInstance();
+                        reaction.setBounds(lp.getValue(), up.getValue());
+                    } catch (Exception ex2) {
+                        reaction.setBounds(-1000, 1000);
+                    }
                 }
             }
             ListOf spref = r.getListOfReactants();
@@ -213,7 +220,7 @@ public class SomePathsTask extends AbstractTask {
                 Species sp = m.getSpecies(s.getSpecies());
                 //System.out.println(sp.getName());
                 if (sp.getBoundaryCondition() && reaction.getlb() < 0) {
-                   // System.out.println(reaction.getId()+"-"+reaction.getlb());
+                    // System.out.println(reaction.getId()+"-"+reaction.getlb());
                     SpeciesFA specie = this.compounds.get(sp.getId());
                     if (specie.getAnt() == null) {
                         Ant ant = new Ant(specie.getId());
@@ -239,7 +246,7 @@ public class SomePathsTask extends AbstractTask {
             if (r.getNumProducts() == 0) {
                 spref = r.getListOfReactants();
                 for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+                    SpeciesReference s = (SpeciesReference) spref.get(e);
                     Species sp = m.getSpecies(s.getSpecies());
                     SpeciesFA specie = this.compounds.get(sp.getId());
                     if (specie.getAnt() == null) {
@@ -272,8 +279,8 @@ public class SomePathsTask extends AbstractTask {
     }
 
     public void cicle() {
-       // System.out.println("---------------------------");
-        for (String compound : compounds.keySet()) {             
+        // System.out.println("---------------------------");
+        for (String compound : compounds.keySet()) {
             if (this.compounds.get(compound).getAnt() == null) {
                 continue;
             }
@@ -353,9 +360,8 @@ public class SomePathsTask extends AbstractTask {
         List<String> connectedReactions = sp.getReactions();
         //System.out.println(compound + "- "+connectedReactions.size());
         for (String reaction : connectedReactions) {
-            
-            //Get reaction direction and then check if there is and Ant in the compound. Problem with cycles..
 
+            //Get reaction direction and then check if there is and Ant in the compound. Problem with cycles..
             ReactionFA r = this.reactions.get(reaction);
             if (r == null) {
                 continue;
@@ -440,34 +446,33 @@ public class SomePathsTask extends AbstractTask {
         for (String r : path.keySet()) {
             System.out.println(r);
             ReactionFA reaction = reactions.get(r);
-            if (reaction != null) {                
+            if (reaction != null) {
                 Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFlux()));
-               // if (previousG != null) {
-               //     reactionNode.setPosition(previousG.getNode(reaction.getId()).getPosition());
-               // }
-               
+                // if (previousG != null) {
+                //     reactionNode.setPosition(previousG.getNode(reaction.getId()).getPosition());
+                // }
+
                 g.addNode2(reactionNode);
 
                 for (String reactant : reaction.getReactants()) {
                     SpeciesFA sp = compounds.get(reactant);
-                   
+
                     Node reactantNode = g.getNode(reactant);
                     if (reactantNode == null) {
                         reactantNode = new Node(reactant, sp.getName());
                     }
-                
-                   // if (previousG != null) {
+
+                    // if (previousG != null) {
                     //    reactantNode.setPosition(previousG.getNode(reactant).getPosition());
                     //}
                     g.addNode2(reactantNode);
                     if (sp.getId().equals(this.biomassID)) {
                         reactantNode.setColor(Color.red);
                     }
-                  
+
                     if (this.sourcesList.contains(sp.getId())) {
                         reactantNode.setColor(Color.MAGENTA);
                     }
-
 
                     Edge e;
                     if (path.get(r)) {
@@ -484,9 +489,9 @@ public class SomePathsTask extends AbstractTask {
                     if (reactantNode == null) {
                         reactantNode = new Node(product, sp.getName());
                     }
-                   // if (previousG != null) {
+                    // if (previousG != null) {
                     //    reactantNode.setPosition(previousG.getNode(product).getPosition());
-                   // }
+                    // }
                     g.addNode2(reactantNode);
                     if (sp.getId().equals(this.biomassID)) {
                         reactantNode.setColor(Color.red);

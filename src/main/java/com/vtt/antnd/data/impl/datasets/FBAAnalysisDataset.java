@@ -19,14 +19,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JTextArea;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.LocalParameter;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+
 
 /**
  *
@@ -116,15 +119,15 @@ public class FBAAnalysisDataset implements Dataset {
 
     @Override
     public Graph getGraph() {
-         Model model = this.document.getModel();
-        System.out.println("1");
+        Model model = this.document.getModel();
+      
         this.cofactors = NDCore.getCofactors();
         List<Node> nodeList = new ArrayList<>();
         List<Edge> edgeList = new ArrayList<>();
 
         Graph g = new Graph(nodeList, edgeList);
 
-        System.out.println("2");
+      
         try {
             ListOf listOfReactions = model.getListOfReactions();
             for (int i = 0; i < model.getNumReactions(); i++) {
@@ -179,7 +182,7 @@ public class FBAAnalysisDataset implements Dataset {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
-        System.out.println("3");
+      
         this.graph = g;
         return g;
     }
@@ -200,9 +203,18 @@ public class FBAAnalysisDataset implements Dataset {
             LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
             lb = lbound.getValue();
             LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-            ub = ubound.getValue();
-            LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");
-            flux = rflux.getValue();
+            ub = ubound.getValue();           
+        } else {
+            FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");   
+            Parameter lbp = plugin.getLowerFluxBoundInstance();
+            Parameter ubp = plugin.getUpperFluxBoundInstance();
+            if(lbp != null){
+                lb = lbp.getValue();
+                ub = ubp.getValue();
+            }else{
+                lb = 0;
+                ub = 0;
+            }
         }
         if (flux != null) {
             if (flux > 0) {
@@ -413,6 +425,16 @@ public class FBAAnalysisDataset implements Dataset {
 
     @Override
     public void setIsParent(boolean isParent) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setFlux(String reaction, Double flux) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Double getFlux(String reaction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

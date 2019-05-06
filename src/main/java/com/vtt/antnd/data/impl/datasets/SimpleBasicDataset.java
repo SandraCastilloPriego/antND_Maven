@@ -31,14 +31,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JTextArea;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  * Basic data set implementation.
@@ -60,6 +61,7 @@ public class SimpleBasicDataset implements Dataset {
     private String biomassId;
     private boolean isCluster = false;
     private HashMap<String, ReactionFA> reactions;
+    private HashMap<String, Double> fluxes;
     private HashMap<String, SpeciesFA> compounds;
     private List<String> cofactors;
     private Map<String, Double[]> sourcesMap;
@@ -80,6 +82,7 @@ public class SimpleBasicDataset implements Dataset {
         this.textArea = new JTextArea();
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
+        this.fluxes = new HashMap<>();
     }
 
     public SimpleBasicDataset() {
@@ -88,6 +91,7 @@ public class SimpleBasicDataset implements Dataset {
         this.textArea = new JTextArea();
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
+        this.fluxes = new HashMap<>();
     }
 
     @Override
@@ -143,7 +147,7 @@ public class SimpleBasicDataset implements Dataset {
 
     @Override
     public Graph getGraph() {
-           
+
         Model model = this.document.getModel();
         this.cofactors = NDCore.getCofactors();
         List<Node> nodeList = new ArrayList<>();
@@ -151,29 +155,22 @@ public class SimpleBasicDataset implements Dataset {
 
         Graph g = new Graph(nodeList, edgeList);
 
-       
-        try {
+ 
             // For eac reaction in the model, a Node is created in the graph
-            
-            ListOf listOfReactions = model.getListOfReactions(); 
-            //if (listOfReactions.size() > 1000) return null;
-            for (int i = 0; i < model.getNumReactions(); i++) {
-                Reaction r = (Reaction) listOfReactions.get(i);
-                
+            for(Reaction r:model.getListOfReactions()){
                 //Node is created
                 Node reactionNode = new Node(r.getId(), r.getName());
                 this.setPosition(reactionNode);
-               
+
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
-                // read bounds to know the direction of the edges
-                ListOf listOfReactants = r.getListOfReactants();
-                for (int e = 0; e < r.getNumReactants(); e++) {
-                    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);               
-                    Species sp = model.getSpecies(spr.getSpecies());
-
-                    if (this.cofactors.contains(sp.getId())) {                        
-                        Node cof = new Node(sp.getId(), sp.getName()+ " - " + uniqueId.nextId());
+             
+                for(SpeciesReference spr : r.getListOfReactants()){
+                    spr.printSpeciesReference();                
+                    Species sp = spr.getSpeciesInstance();
+                  
+                    if (this.cofactors.contains(sp.getId())) {
+                        Node cof = new Node(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
                         g.addNode(cof);
                         g.addEdge(addEdge(cof, reactionNode, sp.getId(), direction));
                     } else {
@@ -186,14 +183,11 @@ public class SimpleBasicDataset implements Dataset {
                         g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
                     }
                 }
-
-                ListOf listOfProducts = r.getListOfProducts();
-                for (int e = 0; e < r.getNumProducts(); e++) {
-                    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);               
-                    Species sp = model.getSpecies(spr.getSpecies());
+                for(SpeciesReference spr : r.getListOfProducts()){              
+                    Species sp = spr.getSpeciesInstance();
 
                     if (this.cofactors.contains(sp.getId())) {
-                        Node cof = new Node(sp.getId(), sp.getName()+ " - " + uniqueId.nextId());
+                        Node cof = new Node(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
                         g.addNode(cof);
                         g.addEdge(addEdge(reactionNode, cof, sp.getId(), direction));
                     } else {
@@ -208,9 +202,7 @@ public class SimpleBasicDataset implements Dataset {
                 }
 
             }
-        } catch (Exception e) {         
-            System.out.println(e.toString());
-        }
+       
         this.graph = g;
         System.out.println(g.getNumberOfNodes());
         return g;
@@ -221,7 +213,7 @@ public class SimpleBasicDataset implements Dataset {
             Node gNode = this.graph.getNode(node.getId());
             if (gNode != null) {
                 node.setPosition(gNode.getPosition());
-            }else{
+            } else {
                 System.out.println(node.getId());
             }
         }
@@ -229,37 +221,48 @@ public class SimpleBasicDataset implements Dataset {
 
     private int getDirection(Reaction r) {
         int direction = 2;
-        double lb = Double.NEGATIVE_INFINITY;
-        double ub = Double.POSITIVE_INFINITY;
+        double lb,ub;
         Double flux = null;
+        if(this.fluxes.containsKey(r.getId())){
+            flux = this.fluxes.get(r.getId());
+        }
         if (r.getKineticLaw() != null) {
             KineticLaw law = r.getKineticLaw();
-            Parameter lbound = law.getParameter("LOWER_BOUND");
+            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
             lb = lbound.getValue();
-            Parameter ubound = law.getParameter("UPPER_BOUND");
-            ub = ubound.getValue();
-            try{
-            Parameter rflux = law.getParameter("FLUX_VALUE");            
-            flux = rflux.getValue();         
-            }catch(Exception e ){
-                
+            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+            ub = ubound.getValue();            
+        } else {
+            FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");   
+            Parameter lbp = plugin.getLowerFluxBoundInstance();
+            Parameter ubp = plugin.getUpperFluxBoundInstance();
+            if(lbp != null){
+                lb = lbp.getValue();
+                ub = ubp.getValue();
+            }else{
+                lb = 0;
+                ub = 0;
             }
         }
+
         if (flux != null) {
-            if (flux > 0) {
+           //  System.out.println("flux not null?");
+            if (flux > 0.0) {
                 direction = 1;
-            } else if (flux < 0) {
+            } else if (flux < 0.0) {
                 direction = 0;
             }
         } else {
+           // System.out.println(ub+lb);
             if (ub > 0 && lb < 0) {
                 direction = 2;
             } else if (ub > 0) {
                 direction = 1;
             } else {
                 direction = 0;
-            }            
+            }
         }
+        //System.out.println(direction);
         return direction;
     }
 
@@ -267,15 +270,15 @@ public class SimpleBasicDataset implements Dataset {
         Edge e = null;
         switch (direction) {
             case 1:
-                e = new Edge(name+ " - " + uniqueId.nextId(), node1, node2);
+                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(true);
                 break;
             case 2:
-                e = new Edge(name+ " - " + uniqueId.nextId(), node1, node2);
+                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(false);
                 break;
             case 0:
-                e = new Edge(name+ " - " + uniqueId.nextId(), node2, node1);
+                e = new Edge(name + " - " + uniqueId.nextId(), node2, node1);
                 e.setDirection(true);
                 break;
             default:
@@ -303,7 +306,17 @@ public class SimpleBasicDataset implements Dataset {
     public String getPath() {
         return this.path;
     }
-
+    
+    @Override
+    public void setFlux(String reaction, Double flux){
+        this.fluxes.put(reaction, flux);
+    }
+    
+    @Override
+    public Double getFlux(String reaction) {
+        return this.fluxes.get(reaction);
+    }
+    
     @Override
     public void setPath(String path) {
         this.path = path;
@@ -419,6 +432,7 @@ public class SimpleBasicDataset implements Dataset {
         return false;
     }
 
+    @Override
     public void setReactionSelectionMode(String reaction) {
         this.selectedReaction = reaction;
     }
@@ -431,6 +445,7 @@ public class SimpleBasicDataset implements Dataset {
         return false;
     }
 
+    @Override
     public void setMetaboliteSelectionMode(String metabolite) {
         this.selectedMetabolite = metabolite;
     }
@@ -454,4 +469,6 @@ public class SimpleBasicDataset implements Dataset {
     public void setIsParent(boolean isParent) {
         this.isParent = isParent;
     }
+
+    
 }

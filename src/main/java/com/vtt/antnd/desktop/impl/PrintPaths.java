@@ -84,13 +84,14 @@ import org.apache.commons.collections15.Transformer;
 import org.apache.commons.collections15.functors.ChainedTransformer;
 import org.freehep.graphics2d.VectorGraphics;
 import org.freehep.graphicsio.svg.SVGGraphics2D;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -238,7 +239,6 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         final PickedState<String> pickedState = vv.getPickedVertexState();
 
         pickedState.addItemListener(new ItemListener() {
-           
 
             public String data(String name) {
                 StringBuffer info;
@@ -251,23 +251,31 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                 if (reaction != null) {
                     KineticLaw law = reaction.getKineticLaw();
                     if (law != null) {
-                        Parameter lbound = law.getParameter("LOWER_BOUND");
-                        Parameter ubound = law.getParameter("UPPER_BOUND");
+                        LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                        LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                         info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append(":\n");
                     } else {
-                        info.append(reaction.getId()).append(":\n");
+                        Double lb, ub;
+                        FBCReactionPlugin plugin = (FBCReactionPlugin) reaction.getPlugin("fbc");
+                        Parameter lp = plugin.getLowerFluxBoundInstance();
+                        Parameter up = plugin.getUpperFluxBoundInstance();
+                        lb = lp.getValue();
+                        ub = up.getValue();
+                        info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lb).append(" up: ").append(ub).append(":\n");
                     }
                     info.append("Reactants: \n");
-                    ListOf spref = reaction.getListOfReactants();
-                    for (int i = 0; i < spref.size(); i++) {
-                        SpeciesReference sr = (SpeciesReference) spref.get(i);
+                    //ListOf spref = reaction.getListOfReactants();
+                    //for (int i = 0; i < spref.size(); i++) {
+                    //    SpeciesReference sr = (SpeciesReference) spref.get(i);
+                    for (SpeciesReference sr : reaction.getListOfReactants()) {
                         Species sp = m.getSpecies(sr.getSpecies());
                         info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
                     }
                     info.append("Products: \n");
-                    spref = reaction.getListOfProducts();
-                    for (int i = 0; i < spref.size(); i++) {
-                        SpeciesReference sr = (SpeciesReference) spref.get(i);
+                    // spref = reaction.getListOfProducts();
+                    //for (int i = 0; i < spref.size(); i++) {
+                    for (SpeciesReference sr : reaction.getListOfProducts()) {
+                        //SpeciesReference sr = (SpeciesReference) spref.get(i);
                         Species sp = m.getSpecies(sr.getSpecies());
                         info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
                     }
@@ -277,10 +285,8 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                         info.append(sp.getId()).append(" - ").append(sp.getName());
                         info.append("\n\nPresent in: \n");
                         int count = 0;
-                        ListOf reactions = m.getListOfReactions();
-                        for (int i=0; i< reactions.size();i++) {
-                            Reaction r = (Reaction) reactions.get(i);
-                            if (r.getReactant(name) !=null || r.getProduct(name)!=null) {
+                        for (Reaction r : m.getListOfReactions()) {
+                            if (r.getReactantForSpecies(name) != null || r.getProductForSpecies(name) != null) {
                                 info.append(r.getId()).append(", ");
                                 count++;
                                 if (count == 2) {
@@ -543,9 +549,9 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         this.area = new JTextArea();
         this.area.setPreferredSize(new Dimension(650, 200));
         topPanel.add(this.area);
-       // topPanel.add(field);
+        // topPanel.add(field);
         //topPanel.add(banner);
-       // topPanel.add(button);
+        // topPanel.add(button);
         topPanel.add(saveButton);
         topPanel.setPreferredSize(new Dimension(1000, 200));
         topPanel.setBackground(Color.WHITE);
@@ -617,32 +623,35 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             return;
         }
 
-        ListOf listOfReactions = m.getListOfReactions();
-        for (int i = 0; i < m.getNumReactions(); i++) {
-            Reaction r = (Reaction) listOfReactions.get(i);
+        for (Reaction r : mInit.getListOfReactions()) {
+
             if (reaction != null && !reaction.contains(r.getId())) {
                 continue;
             }
-//            if (r.getId().contains("Ex")) {
-//                continue;
-//            }
-            if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
+            if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                 double lb = Double.NEGATIVE_INFINITY;
                 double ub = Double.POSITIVE_INFINITY;
                 Double flux = null;
                 // read bounds to know the direction of the edges
                 if (r.getKineticLaw() != null) {
                     KineticLaw law = r.getKineticLaw();
-                    Parameter lbound = law.getParameter("LOWER_BOUND");
+                    LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
                     lb = lbound.getValue();
-                    Parameter ubound = law.getParameter("UPPER_BOUND");
+                    LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                     ub = ubound.getValue();
-                    Parameter rflux = law.getParameter("FLUX_VALUE");
+                    LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");
                     try {
                         flux = rflux.getValue();
                     } catch (Exception e) {
                         flux = 0.0;
                     }
+                } else {
+                    FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                    Parameter lp = plugin.getLowerFluxBoundInstance();
+                    Parameter up = plugin.getUpperFluxBoundInstance();
+                    lb = lp.getValue();
+                    ub = up.getValue();
+                    flux = 0.0;
                 }
 
                 // adds the new reaction node with and edge from the extended node
@@ -664,8 +673,9 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                 if (isThere == null) {
 
                     //adds the new reaction to the new model
-                    AddReaction(r);
-
+                    if (m.getReaction(r.getId()) == null) {
+                        AddReaction(r);
+                    }
                     // adds the new reaction to the visualization graph
                     g.addVertex(reactionName);
 
@@ -679,9 +689,10 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                         eType = EdgeType.DIRECTED;
                         direction = true;
                     }
-                    ListOf listOfSR = r.getListOfReactants();
-                    for (int e = 0; e < r.getNumReactants(); e++) {
-                        SpeciesReference sr = (SpeciesReference) listOfSR.get(e);
+                    //ListOf listOfSR = r.getListOfReactants();
+                    //for (int e = 0; e < r.getNumReactants(); e++) {
+                    //    SpeciesReference sr = (SpeciesReference) listOfSR.get(e);
+                    for (SpeciesReference sr : r.getListOfReactants()) {
                         Species sps = mInit.getSpecies(sr.getSpecies());
 
                         //                 if (!this.m.containsSpecies(sp.getId())) {
@@ -730,15 +741,9 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                         }
                     }
 
-                    ListOf listOfProducts = r.getListOfProducts();
-                    for (int j = 0; j < listOfProducts.size(); j++) {
-                        SpeciesReference sr = (SpeciesReference) listOfProducts.get(j);
-
+                    for (SpeciesReference sr : r.getListOfProducts()) {
                         String spId = sr.getSpecies();
-                        Species sps = this.m.getSpecies(spId);
-                        //    if (!this.m.containsSpecies(sp.getId())) {
-                        //      this.m.addSpecies(sps);
-                        //}
+                        Species sps = mInit.getSpecies(spId);
 
                         String nodeProduct = isThere(V, spId);
                         if (nodeProduct == null) {
@@ -820,20 +825,21 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             if (n != null) {
                 n.setPosition(this.layout.getX(v), this.layout.getY(v));
                 //  System.out.println("New Position:" + vertex + " : " + layout.getX(vertex) + " - " + layout.getY(vertex));
-            }else{
+            } else {
                 System.out.println(v);
             }
         }
     }
 
     private void AddReaction(Reaction reaction) {
+        Model mInit = NDCore.getDesktop().getSelectedDataFiles()[0].getDocument().getModel();
+
         Reaction r = new Reaction(reaction);
         r.setId(reaction.getId());
         r.setName(reaction.getName());
-
-        ListOf reactants = reaction.getListOfReactants();
-        for (int i = 0; i < reactants.size(); i++) {
-            SpeciesReference sp = (SpeciesReference) reactants.get(i);
+        System.out.println("Adding new reaction: "+reaction.getId());
+      
+        reaction.getListOfReactants().forEach((sp) -> {
             SpeciesReference spref = r.createReactant();
             spref.setId(sp.getSpecies());
             spref.setStoichiometry(sp.getStoichiometry());
@@ -841,48 +847,44 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             if (m.getSpecies(sp.getSpecies()) != null) {
                 spref.setSpecies(sp.getSpecies());
             } else {
-                Species specie = (Species) m.getSpecies(sp.getSpecies()).cloneObject();
+                Species specie = (Species) mInit.getSpecies(sp.getSpecies()).clone();
                 m.addSpecies(specie);
                 spref.setSpecies(sp.getSpecies());
             }
-
-        }
-
-        ListOf products = reaction.getListOfProducts();
-        for (int i = 0; i < products.size(); i++) {
-            SpeciesReference sp = (SpeciesReference) products.get(i);
+        });
+        reaction.getListOfProducts().forEach((sp) -> {      
             SpeciesReference spref = r.createProduct();
             spref.setStoichiometry(sp.getStoichiometry());
             if (m.getSpecies(sp.getSpecies()) != null) {
                 spref.setSpecies(sp.getSpecies());
             } else {
-                Species specie = (Species) m.getSpecies(sp.getSpecies()).cloneObject();
+                Species specie = (Species) mInit.getSpecies(sp.getSpecies()).clone();
                 m.addSpecies(specie);
                 spref.setSpecies(sp.getSpecies());
             }
-        }
+        });
 
         if (reaction.getKineticLaw() != null) {
             KineticLaw law = r.createKineticLaw();
-            Parameter lboundP = law.createParameter();
+            LocalParameter lboundP = law.createLocalParameter();
             lboundP.setId("LOWER_BOUND");
-            if (reaction.getKineticLaw().getParameter("LOWER_BOUND") != null) {
-                lboundP.setValue(reaction.getKineticLaw().getParameter("LOWER_BOUND").getValue());
+            if (reaction.getKineticLaw().getLocalParameter("LOWER_BOUND") != null) {
+                lboundP.setValue(reaction.getKineticLaw().getLocalParameter("LOWER_BOUND").getValue());
 
-                law.addParameter(lboundP);
-                Parameter uboundP = law.createParameter();
+                law.addLocalParameter(lboundP);
+                LocalParameter uboundP = law.createLocalParameter();
                 uboundP.setId("UPPER_BOUND");
-                uboundP.setValue(reaction.getKineticLaw().getParameter("LOWER_BOUND").getValue());
-                law.addParameter(uboundP);
+                uboundP.setValue(reaction.getKineticLaw().getLocalParameter("LOWER_BOUND").getValue());
+                law.addLocalParameter(uboundP);
 
                 /*LocalParameter obj = new LocalParameter("OBJECTIVE_COEFFICIENT");
                 obj.setValue(reaction.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT").getValue());
                 law.addLocalParameter(obj);*/
-                Parameter obj = law.createParameter();
+                LocalParameter obj = law.createLocalParameter();
                 obj.setId("OBJECTIVE_COEFFICIENT");
                 obj.setValue(0.0);
-                law.addParameter(obj);
-                Parameter fv = law.createParameter();
+                law.addLocalParameter(obj);
+                LocalParameter fv = law.createLocalParameter();
                 fv.setId("FLUX_VALUE");
                 try {
                     fv.setValue(reaction.getKineticLaw().getParameter("FLUX_VALUE").getValue());
@@ -893,6 +895,13 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
                 r.setKineticLaw(law);
             }
+        }else{
+            FBCReactionPlugin plugin = (FBCReactionPlugin) reaction.getPlugin("fbc");                       
+            Parameter lp = plugin.getLowerFluxBoundInstance();                        
+            Parameter up = plugin.getUpperFluxBoundInstance();
+            FBCReactionPlugin plugin2 = (FBCReactionPlugin) r.createPlugin("fbc");
+            plugin2.setLowerFluxBound(lp.clone());
+            plugin2.setUpperFluxBound(up.clone());
         }
         r.appendNotes(reaction.getNotes());
 
@@ -910,7 +919,8 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         } else {
             if (!this.selectedNode.isEmpty()) {
                 String reaction = command.split(" - ")[0];
-                showReactions(this.selectedNode.get(0), command);
+                System.out.println("command: " + reaction);
+                showReactions(this.selectedNode.get(0), reaction);
             }
         }
     }
@@ -946,10 +956,10 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             }
             GUIUtils.addMenuItem(popupMenu, "All", this, "All");
             int i = 0;
-            ListOf reactions = mInit.getListOfReactions();
-            for (int e = 0; e < reactions.size(); e++) {
-                Reaction r = (Reaction) reactions.get(e);
-                if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
+            //ListOf reactions = mInit.getListOfReactions();
+            for (Reaction r : mInit.getListOfReactions()) {
+                //Reaction r = (Reaction) reactions.get(e);
+                if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                     String reaction = r.getId() + " - " + r.getName();
                     GUIUtils.addMenuItem(popupMenu, reaction, this, reaction);
                     i++;

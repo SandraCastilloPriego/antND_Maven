@@ -42,14 +42,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jumpmind.symmetric.csv.CsvReader;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -65,8 +67,8 @@ public class FluxAnalysisTask extends AbstractTask {
     private final Map<String, Double> fluxes;
     private final Map<String, Color> color;
     private final GetInfoAndTools tools;
-    private HashMap<String, ReactionFA> reactions;
-    private HashMap<String, SpeciesFA> compounds;
+    private final HashMap<String, ReactionFA> reactions;
+    private final HashMap<String, SpeciesFA> compounds;
 
     public FluxAnalysisTask(SimpleBasicDataset dataset, SimpleParameterSet parameters) {
         this.networkDS = dataset;
@@ -107,10 +109,10 @@ public class FluxAnalysisTask extends AbstractTask {
             SBMLDocument doc = this.networkDS.getDocument();
             Model m = doc.getModel();
 
-            SBMLDocument newDoc = doc.cloneObject();
+            SBMLDocument newDoc = doc.clone();
             Model newModel = newDoc.getModel();
             ListOf reactions = m.getListOfReactions();
-            for (int i =0; i < reactions.size();i++) {
+            for (int i = 0; i < reactions.size(); i++) {
                 Reaction reaction = (Reaction) reactions.get(i);
                 if (!this.fluxes.containsKey(reaction.getId())) {
                     newModel.removeReaction(reaction.getId());
@@ -195,29 +197,33 @@ public class FluxAnalysisTask extends AbstractTask {
         }
 
         ListOf reactions = m.getListOfReactions();
-            for (int i =0; i < reactions.size();i++) {
+        for (int i = 0; i < reactions.size(); i++) {
             Reaction r = (Reaction) reactions.get(i);
             boolean biomass = false;
 
             ReactionFA reaction = new ReactionFA(r.getId());
-            reaction.setFlux(fluxes.get(r.getId()));
-            Parameter parameter = r.getKineticLaw().getParameter("FLUX_VALUE");
-            if (parameter == null) {
-                parameter = r.getKineticLaw().createParameter();
-                parameter.setId("FLUX_VALUE");
-            }
-            parameter.setValue(fluxes.get(r.getId()));
+            this.networkDS.setFlux(r.getId(), fluxes.get(r.getId()));
 
             try {
                 KineticLaw law = r.getKineticLaw();
-                Parameter lbound = law.getParameter("LOWER_BOUND");
-                Parameter ubound = law.getParameter("UPPER_BOUND");
+                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                 reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {
-                reaction.setBounds(-1000, 1000);
+                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                if (plugin == null) {
+                    reaction.setBounds(-1000, 1000);
+                }
+                Parameter lbp = plugin.getLowerFluxBoundInstance();
+                Parameter ubp = plugin.getUpperFluxBoundInstance();
+                if (lbp != null) {
+                    reaction.setBounds(lbp.getValue(), ubp.getValue());
+                } else {
+                    reaction.setBounds(-1000, 1000);
+                }
             }
             ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
 
@@ -234,7 +240,7 @@ public class FluxAnalysisTask extends AbstractTask {
             }
 
             spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
 
@@ -273,11 +279,11 @@ public class FluxAnalysisTask extends AbstractTask {
     }
 
     private Graph createGraph() {
-        Graph g = new Graph(null, null);        
+        Graph g = new Graph(null, null);
         for (String r : reactions.keySet()) {
             ReactionFA reaction = reactions.get(r);
             if (reaction != null) {
-                Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFinalFlux()));                
+                Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFinalFlux()));
                 g.addNode2(reactionNode);
                 for (String reactant : reaction.getReactants()) {
                     SpeciesFA sp = compounds.get(reactant);
@@ -285,7 +291,7 @@ public class FluxAnalysisTask extends AbstractTask {
                     if (reactantNode == null) {
                         reactantNode = new Node(reactant, sp.getName());
                     }
-                    g.addNode2(reactantNode);                   
+                    g.addNode2(reactantNode);
                     Edge e;
                     e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
 
@@ -297,7 +303,7 @@ public class FluxAnalysisTask extends AbstractTask {
                     if (reactantNode == null) {
                         reactantNode = new Node(product, sp.getName());
                     }
-                    g.addNode2(reactantNode);                    
+                    g.addNode2(reactantNode);
                     Edge e;
                     e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
 
@@ -309,9 +315,9 @@ public class FluxAnalysisTask extends AbstractTask {
     }
 
     private boolean isInReactions(ListOf listOfReactions, Species sp) {
-        for (int i =0; i < listOfReactions.size();i++) {
+        for (int i = 0; i < listOfReactions.size(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
-            if (r.getProduct(sp.getId()) !=null || r.getReactant(sp.getId())!=null) {
+            if (r.getProduct(sp.getId()) != null || r.getReactant(sp.getId()) != null) {
                 return true;
             }
         }

@@ -10,7 +10,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/local/lib/ -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
                 <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
             </properties>
@@ -25,7 +25,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=${jpda.address} -Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/local/lib/ -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
                 <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
@@ -41,7 +41,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/local/lib/ -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
                 <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
             </properties>

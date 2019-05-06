@@ -9,29 +9,27 @@
         <repository>
             <id>XypronRelease</id>
             <name>Xypron Release</name>
-            <url>https://www.xypron.de/repository</url>
+            <url>https://www.xypron.de/repository/</url>
             <layout>default</layout>
-        </repository>
+        </repository>  
+         <repository>
+            <id>MetovaOndex</id>
+            <name>MetovaOndex</name>
+            <url>http://ondex.rothamsted.ac.uk/nexus/content/repositories/releases/</url>
+            <layout>default</layout>
+        </repository>        
     </repositories>
     <dependencies>
         <dependency>
             <groupId>org.gnu.glpk</groupId>
             <artifactId>glpk-java</artifactId>
             <version>1.12.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.sbml</groupId>
-            <artifactId>libsbml</artifactId>
-            <version>5.15.0</version>
-            <type>jar</type>
-        </dependency>
-   
+        </dependency>   
         <dependency>
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
             <version>1.2.0</version>
-        </dependency>
+        </dependency> 
         <dependency>
             <groupId>org.freehep</groupId>
             <artifactId>freehep-graphics2d</artifactId>
@@ -68,12 +66,7 @@
             <groupId>org.freehep</groupId>
             <artifactId>freehep-graphicsio-svg</artifactId>
             <version>2.4</version>
-        </dependency>
-        <dependency>
-            <groupId>gdswing</groupId>
-            <artifactId>gdswing</artifactId>
-            <version>0.01</version>
-        </dependency>
+        </dependency>        
         <dependency>
             <groupId>dom4j</groupId>
             <artifactId>dom4j</artifactId>
@@ -106,12 +99,7 @@
             <artifactId>jung-api</artifactId>
             <version>2.0.1</version>
             <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>collection-generic</groupId>
-            <artifactId>collection-generic</artifactId>
-            <version>4</version>
-        </dependency>
+        </dependency>       
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
@@ -133,6 +121,17 @@
             <artifactId>dynamicreports-core</artifactId>
             <version>4.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>ca.guydavis.swing</groupId>
+            <artifactId>gdswing</artifactId>
+            <version>0.01</version>
+            <scope>compile</scope>
+        </dependency>
+         <dependency>
+	      <groupId>org.sbml.jsbml</groupId>
+	      <artifactId>jsbml</artifactId>
+	      <version>1.4</version>
+	    </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.data.models;
 
-
 import com.vtt.antnd.data.ColumnName;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
@@ -29,28 +28,35 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.table.AbstractTableModel;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.LocalParameter;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SpeciesReference;
-
+import javax.xml.stream.XMLStreamException;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
+import org.sbml.jsbml.ext.fbc.Objective.Type;
 
 public class ReactionsDataModel extends AbstractTableModel implements DataTableModel {
 
-    private Dataset dataset;
-    private List<ColumnName> columns;
+    private final Dataset dataset;
+    private final List<ColumnName> columns;
     private Color[] rowColor;
 
     public ReactionsDataModel(Dataset dataset) {
         this.dataset = (SimpleBasicDataset) dataset;
-        rowColor = new Color[ (int)dataset.getDocument().getModel().getNumReactions()];
+        rowColor = new Color[(int) dataset.getDocument().getModel().getNumReactions()];
         columns = new ArrayList<>();
         columns.addAll(Arrays.asList(ColumnName.values()));
     }
 
+    @Override
     public Color getRowColor(int row) {
         if (row < rowColor.length) {
             return rowColor[row];
@@ -59,6 +65,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         }
     }
 
+    @Override
     public void addRowColor(Color[] color) {
         this.rowColor = color;
     }
@@ -66,12 +73,12 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     /**
      * @see guineu.util.Tables.DataTableModel
      */
+    @Override
     public void removeRows() {
         Model model = dataset.getDocument().getModel();
         List<Reaction> toBeRemoved = new ArrayList();
-        ListOf listOfReactions = model.getListOfReactions();
-        for (int i = 0; i < model.getNumReactions(); i++) {
-            Reaction reaction = (Reaction) listOfReactions.get(i);
+
+        for (Reaction reaction : model.getListOfReactions()) {
             if (dataset.isReactionSelected(reaction)) {
                 toBeRemoved.add(reaction);
                 this.fireTableDataChanged();
@@ -84,17 +91,21 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         }
     }
 
+    @Override
     public int getColumnCount() {
         return 10;
     }
 
+    @Override
     public int getRowCount() {
-        return (int)this.dataset.getDocument().getModel().getNumReactions();
+        return (int) this.dataset.getDocument().getModel().getNumReactions();
     }
 
+    @Override
     public Object getValueAt(final int row, final int column) {
         try {
-            Reaction r = this.dataset.getDocument().getModel().getReaction(row);
+            Model model = this.dataset.getDocument().getModel();
+            Reaction r = model.getReaction(row);
 
             String value = columns.get(column).getColumnName();
             switch (value) {
@@ -107,49 +118,77 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                 case "Reaction":
                     return getReactionNoExt(r);
                 case "Reaction extended":
-                    return getReactionExt(r,this.dataset.getDocument().getModel());
+                    return getReactionExt(r, this.dataset.getDocument().getModel());
                 case "Lower bound":
-                    Parameter lp = r.getKineticLaw().getParameter("LOWER_BOUND");
-                    if (lp == null) {
-                        lp = r.getKineticLaw().getParameter("LB_" + r.getId());
-                    }
-                    return lp.getValue();
-                case "Upper bound":
-                    lp = r.getKineticLaw().getParameter("UPPER_BOUND");
-                    if (lp == null) {
-                        lp = r.getKineticLaw().getParameter("UB_" + r.getId());
-                    }
-                    return lp.getValue();
-                case "Notes":
-                    String notes = r.getNotesString();
-                    return notes;
-                case "Objective":
-                    lp = r.getKineticLaw().getParameter("OBJECTIVE_COEFFICIENT");
-                    if(lp !=null) {
+                    if (r.getKineticLaw() != null) {
+                        LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
+                        if (lp == null) {
+                            lp = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
+                        }
                         return lp.getValue();
-                    }else{        
-                        Parameter parameter= r.getKineticLaw().createParameter();
-                        parameter.setId("OBJECTIVE_COEFFICIENT");
-                        parameter.setValue(0.0);
-                        r.getKineticLaw().addParameter(parameter);  
-                        return 0.0;
-                    }                    
-                case "Fluxes":
-                    Parameter flux = r.getKineticLaw().getParameter("FLUX_VALUE");
-                    if(flux !=null) {
-                        return flux.getValue();
-                    }else{
-                        Parameter parameter= r.getKineticLaw().createParameter();
-                        parameter.setId( "FLUX_VALUE");
-                        parameter.setValue(0.0);                        
+                    } else {
+                        FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                        Parameter lp = plugin.getLowerFluxBoundInstance();
+                        return lp.getValue();
+                    }
+                case "Upper bound":
+                    if (r.getKineticLaw() != null) {
+                        LocalParameter lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
+                        if (lp == null) {
+                            lp = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
+                        }
+                        return lp.getValue();
+                    } else {
+                        FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                        Parameter lp = plugin.getUpperFluxBoundInstance();
+                        return lp.getValue();
+                    }
+                case "Notes":
+                    String notes;
+                    try {
+                        notes = r.getNotesString();
+                        return notes;
+                    } catch (XMLStreamException ex) {
+                        Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                case "Objective":
+                    if (r.getKineticLaw() != null) {
+                        LocalParameter lp = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
+                        if (lp != null) {
+                            return lp.getValue();
+                        } else {
+                            return this.getObjectiveFBC(r.getId(), model);
+                        }
+                    } else {
+
                         return 0.0;
                     }
+                case "Fluxes":
+                    return this.dataset.getFlux(r.getId());
+
             }
             return value;
 
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private double getObjectiveFBC(String r, Model model) {
+        try {
+            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+            for (Objective obj : plugin.getListOfObjectives()) {
+                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                    if (fobj.getReaction().equals(r)) {
+                        return fobj.getCoefficient();
+                    }
+                }
+            }
+        } catch (NullPointerException n) {
+            return 0.0;
+        }
+        return 0.0;
     }
 
     @Override
@@ -171,7 +210,8 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     public void setValueAt(Object aValue, int row, int column) {
         try {
             String info = "";
-            Reaction r = this.dataset.getDocument().getModel().getReaction(row);
+            Model model = this.dataset.getDocument().getModel();
+            Reaction r = model.getReaction(row);
 
             String value = columns.get(column).getColumnName();
             switch (value) {
@@ -179,7 +219,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                     return;
                 case "Id":
                     if (aValue == null || aValue.toString().isEmpty() || aValue.equals("NA")) {
-                        info = info + "\n- The reaction " + r.getId() + " - " + r.getName() + " has been removed : \n" + getReactionNoExt(r) + "\n" + getReactionExt(r,this.dataset.getDocument().getModel()) + "\n------------------";
+                        info = info + "\n- The reaction " + r.getId() + " - " + r.getName() + " has been removed : \n" + getReactionNoExt(r) + "\n" + getReactionExt(r, this.dataset.getDocument().getModel()) + "\n------------------";
                         dataset.addInfo(info);
 
                         this.dataset.getDocument().getModel().removeReaction(r.getId());
@@ -208,9 +248,9 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                     dataset.addInfo(info);
                     return;
                 case "Lower bound":
-                    Parameter parameter = r.getKineticLaw().getParameter("LOWER_BOUND");
+                    LocalParameter parameter = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
                     if (parameter == null) {
-                        parameter = r.getKineticLaw().getParameter("LB_" + r.getId());
+                        parameter = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
                     }
                     info = info + "\n- Lower bound of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
                     dataset.addInfo(info);
@@ -218,48 +258,67 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                     parameter.setValue(Double.valueOf(aValue.toString()));
                     return;
                 case "Upper bound":
-                    parameter = r.getKineticLaw().getParameter("UPPER_BOUND");
+                    parameter = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
                     if (parameter == null) {
-                        parameter = r.getKineticLaw().getParameter("UB_" + r.getId());
+                        parameter = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
                     }
                     info = info + "\n- Upper bound of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
                     dataset.addInfo(info);
 
                     parameter.setValue(Double.valueOf(aValue.toString()));
                     return;
-                case "Notes":
-                    info = info + "\n- Notes of the reaction " + r.getId() + " - " + r.getName() + " have changed from " + r.getNotes().toXMLString() + " to " + aValue.toString();
-                    dataset.addInfo(info);
-                    r.setNotes(value);
-                    return;
+                case "Notes": {
+                    try {
+                        info = info + "\n- Notes of the reaction " + r.getId() + " - " + r.getName() + " have changed from " + r.getNotes().toXMLString() + " to " + aValue.toString();
+                        dataset.addInfo(info);
+                        r.setNotes(value);
+                    } catch (XMLStreamException ex) {
+                        Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                return;
+
                 case "Objective":
-                    parameter = r.getKineticLaw().getParameter("OBJECTIVE_COEFFICIENT");
-                    if (parameter == null) {
-                        parameter = r.getKineticLaw().getParameter("OBJ_" + r.getId());
+                    try {
+                        parameter = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
+                        parameter = r.getKineticLaw().getLocalParameter("OBJ_" + r.getId());
+                    } catch (NullPointerException n) {
                     }
-                    if (parameter == null) {
-                        parameter = r.getKineticLaw().createParameter();
-                        parameter.setId("OBJECTIVE_COEFFICIENT");
+                    try {
+                        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+
+                        FluxObjective fx = new FluxObjective();
+                        fx.setReaction(r);
+                        fx.setCoefficient(Double.valueOf(aValue.toString()));
+                        Type type = Objective.Type.MAXIMIZE;
+                        if (Double.valueOf(aValue.toString()) < 0) {
+                            type = Objective.Type.MINIMIZE;
+                        }
+                        Objective obj = plugin.createObjective("obj" + r.getId(), type);
+                        obj.addFluxObjective(fx);
+                        plugin.setActiveObjective(obj);
+                    } catch (NullPointerException n) {
+                        System.out.println("there is no FBCPlugin");
+                        FBCModelPlugin plugin = new FBCModelPlugin(model);
+                        Type type = Objective.Type.MAXIMIZE;
+                        if (Double.valueOf(aValue.toString()) < 0) {
+                            type = Objective.Type.MINIMIZE;
+                        }
+                        Objective obj = plugin.createObjective("obj" + r.getId(), type);
+                        FluxObjective fx = new FluxObjective();
+                        fx.setReaction(r);
+                        fx.setCoefficient(Double.valueOf(aValue.toString()));
+                        obj.addFluxObjective(fx);
+                        plugin.setActiveObjective(obj);
                     }
 
-                    info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
-                    dataset.addInfo(info);
-
-                    parameter.setValue(Double.valueOf(aValue.toString()));
-
+                    //    info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
+                    //   dataset.addInfo(info);                   
                     return;
                 case "Fluxes":
-                    parameter = r.getKineticLaw().getParameter("FLUX_VALUE");
-                    if (parameter == null) {
-                        parameter = r.getKineticLaw().createParameter();
-                        parameter.setId("FLUX_VALUE");
-                    }
-
-                    info = info + "\n- Flux of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
+                    info = info + "\n- Flux of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + this.dataset.getFlux(r.getId()) + " to " + aValue.toString();
                     dataset.addInfo(info);
-
-                    parameter.setValue(Double.valueOf(aValue.toString()));
-
+                    this.dataset.setFlux(r.getId(), Double.valueOf(aValue.toString()));
                     return;
             }
 
@@ -267,7 +326,6 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         } catch (Exception e) {
 
         }
-
     }
 
     @Override
@@ -296,17 +354,19 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
     private String getReactionNoExt(Reaction r) {
         String reaction = "";
-        ListOf listOfReactants= r.getListOfReactants();
-        for (int i = 0; i < r.getNumReactants(); i++) {
-            SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);        
+        //ListOf listOfReactants= r.getListOfReactants();
+        //for (int i = 0; i < r.getNumReactants(); i++) {
+        //    SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);   
+        for (SpeciesReference reactant : r.getListOfReactants()) {
             reaction += reactant.getStoichiometry() + " " + reactant.getSpecies() + " + ";
         }
         reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         reaction += " <=> ";
         if (r.getNumProducts() > 0) {
-            ListOf listOfProducts= r.getListOfProducts();
-            for (int i = 0; i < r.getNumProducts(); i++) {
-            SpeciesReference product = (SpeciesReference) listOfProducts.get(i);  
+            //ListOf listOfProducts= r.getListOfProducts();
+            //for (int i = 0; i < r.getNumProducts(); i++) {
+            //SpeciesReference product = (SpeciesReference) listOfProducts.get(i); 
+            for (SpeciesReference product : r.getListOfProducts()) {
                 reaction += product.getStoichiometry() + " " + product.getSpecies() + " + ";
             }
             reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
@@ -316,17 +376,19 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
     private Object getReactionExt(Reaction r, Model m) {
         String reaction = "";
-        ListOf listOfReactants= r.getListOfReactants();
+        /* ListOf listOfReactants= r.getListOfReactants();
         for (int i = 0; i < r.getNumReactants(); i++) {
-            SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);    
+            SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);  */
+        for (SpeciesReference reactant : r.getListOfReactants()) {
             reaction += reactant.getStoichiometry() + " " + m.getSpecies(reactant.getSpecies()).getName() + " + ";
         }
         reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         reaction += " <=> ";
-         if (r.getNumProducts() > 0) {
-            ListOf listOfProducts= r.getListOfProducts();
-            for (int i = 0; i < r.getNumProducts(); i++) {
-            SpeciesReference product = (SpeciesReference) listOfProducts.get(i);  
+        if (r.getNumProducts() > 0) {
+            //ListOf listOfProducts= r.getListOfProducts();
+            // for (int i = 0; i < r.getNumProducts(); i++) {
+            // SpeciesReference product = (SpeciesReference) listOfProducts.get(i);  
+            for (SpeciesReference product : r.getListOfProducts()) {
                 reaction += product.getStoichiometry() + " " + m.getSpecies(product.getSpecies()).getName() + " + ";
             }
             reaction = reaction.substring(0, reaction.lastIndexOf(" + "));

@@ -26,11 +26,12 @@ import java.awt.Dimension;
 import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+
 
 
 /**
@@ -83,11 +84,10 @@ public class ShowAllCompoundsTask extends AbstractTask {
                         Model m = doc.getModel();
                         info.append("There are ").append(m.getNumSpecies()).append(" species in the model:\n");
                         info.append("\n----------------------------------- \n");
-                        ListOf species = m.getListOfSpecies();
+                        ListOf<Species> species = m.getListOfSpecies();
                         this.showCompounds(species, m);
                         
-                        for (int i = 0; i < species.size(); i++) {
-                                Species sp = (Species) species.get(i);
+                        for (Species sp: species) {                       
                                 info.append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
                         }
 
@@ -105,16 +105,17 @@ public class ShowAllCompoundsTask extends AbstractTask {
                 }
         }
 
-        private void showCompounds(ListOf possibleSpecies, Model m) {
+        private void showCompounds(ListOf<Species> possibleSpecies, Model m) {
                 float count = 0;
-                for (int i =0; i < possibleSpecies.size(); i++) {
-                        Species sp = (Species) possibleSpecies.get(i);
+                for (Species sp : possibleSpecies) {
+                       // Species sp = (Species) possibleSpecies.get(i);
                         info.append(sp.getId()).append(" - ").append(sp.getName());
                         info.append("\nPresent in: ");
-                        ListOf reactions = m.getListOfReactions();
-                        for (int e = 0; e < reactions.size(); e++) {
-                                Reaction r = (Reaction) reactions.get(e);
-                                if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
+                       // ListOf reactions = m.getListOfReactions();
+                        //for (int e = 0; e < reactions.size(); e++) {
+                        //   Reaction r = (Reaction) reactions.get(e);
+                        for(Reaction r: m.getListOfReactions()){
+                                if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                                         info.append(r.getId()).append(", ");
                                 }
                         }

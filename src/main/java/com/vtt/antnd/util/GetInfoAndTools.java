@@ -17,8 +17,6 @@
  */
 package com.vtt.antnd.util;
 
-
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
 import com.vtt.antnd.data.network.Graph;
@@ -38,49 +36,50 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jumpmind.symmetric.csv.CsvReader;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
  * @author scsandra
  */
 public class GetInfoAndTools {
-
+    
     File sources, boundsFile, pathwayFile;
     Model newModel = null;
-
+    
     public GetInfoAndTools() {
         SourcesConfParameters sourcesParameters = new SourcesConfParameters();
-       // this.sources = sourcesParameters.getParameter(SourcesConfParameters.exchange).getValue();
+        // this.sources = sourcesParameters.getParameter(SourcesConfParameters.exchange).getValue();
         //this.boundsFile = sourcesParameters.getParameter(SourcesConfParameters.bounds).getValue();
         this.pathwayFile = sourcesParameters.getParameter(SourcesConfParameters.pathways).getValue();
     }
-
+    
     public File getBoundsFile() {
         return this.boundsFile;
     }
-
+    
     public File getSourcesFile() {
         return this.sources;
     }
-
+    
     public Map<String, List<String>> GetPathwayInfo() {
-
+        
         Map<String, List<String>> pathwaysMap = new HashMap<>();
         try {
             CsvReader pathwaycsvFile = new CsvReader(new FileReader(this.pathwayFile), ',');
-
+            
             try {
                 while (pathwaycsvFile.readRecord()) {
                     try {
                         String[] pathwayRow = pathwaycsvFile.getValues();
-                        if(pathwayRow != null && !pathwayRow[2].isEmpty()){
+                        if (pathwayRow != null && !pathwayRow[2].isEmpty()) {
                             if (pathwaysMap.containsKey(pathwayRow[2])) {
                                 pathwaysMap.get(pathwayRow[2]).add(pathwayRow[0]);
                             } else {
@@ -105,23 +104,23 @@ public class GetInfoAndTools {
             } catch (IOException ex) {
                 Logger.getLogger(com.vtt.antnd.util.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            
             return pathwaysMap;
         } catch (FileNotFoundException ex) {
             Logger.getLogger(com.vtt.antnd.util.GetInfoAndTools.class.getName()).log(Level.SEVERE, null, ex);
         }
         return pathwaysMap;
     }
-
+    
     public Map<String, Double[]> GetSourcesInfo() {
-
+        
         Map<String, Double[]> exchangeMap = new HashMap<>();
         try {
             if (this.sources == null) {
                 return exchangeMap;
             }
             CsvReader exchange = new CsvReader(new FileReader(this.sources), '\t');
-
+            
             try {
                 while (exchange.readRecord()) {
                     try {
@@ -137,13 +136,13 @@ public class GetInfoAndTools {
             } catch (IOException ex) {
                 return null;
             }
-
+            
             return exchangeMap;
         } catch (FileNotFoundException ex) {
             return null;
         }
     }
-
+    
     public HashMap<String, String[]> readBounds(Dataset networkDS) {
         HashMap<String, String[]> b = new HashMap<>();
         try {
@@ -153,24 +152,37 @@ public class GetInfoAndTools {
                 return b;
             }
             CsvReader reader = new CsvReader(new FileReader(this.boundsFile));
-
+            
             while (reader.readRecord()) {
                 String[] data = reader.getValues();
                 String reactionName = data[0].replace("-", "");
                 b.put(reactionName, data);
-
+                
                 Reaction r = m.getReaction(reactionName);
                 if (r != null && r.getKineticLaw() == null) {
                     KineticLaw law = r.createKineticLaw();
-                    Parameter lbound = law.createParameter();
+                    LocalParameter lbound = law.createLocalParameter();
                     lbound.setId("LOWER_BOUND");
                     lbound.setValue(Double.valueOf(data[3]));
                     //law.addParameter(lbound);
-                    Parameter ubound = law.createParameter();
+                    LocalParameter ubound = law.createLocalParameter();
                     ubound.setId("UPPER_BOUND");
                     ubound.setValue(Double.valueOf(data[4]));
                     //law.addParameter(ubound);
                     r.setKineticLaw(law);
+                } else if (r != null) {
+                    FBCReactionPlugin plugin = new FBCReactionPlugin(r);
+                    if(Double.valueOf(data[3]) == 0){
+                        plugin.setLowerFluxBound("cobra_0_bound");
+                    }else if(Double.valueOf(data[3]) < 0){
+                        plugin.setLowerFluxBound("cobra_defauld_lb");
+                    }
+                    if(Double.valueOf(data[4]) == 0){
+                        plugin.setUpperFluxBound("cobra_0_bound");
+                    }else if(Double.valueOf(data[4]) > 0){
+                        plugin.setUpperFluxBound("cobra_defauld_ub");
+                    }    
+                    
                 }
             }
         } catch (FileNotFoundException ex) {
@@ -180,29 +192,31 @@ public class GetInfoAndTools {
         }
         return b;
     }
-
+    
     public SimpleBasicDataset createDataFile(Graph graph, Dataset networkDS, String biomassID, List<String> sourcesList, boolean isCluster, boolean isParent) {
         if (graph != null) {
-            SBMLDocument newDoc = networkDS.getDocument().cloneObject();
+            SBMLDocument newDoc = networkDS.getDocument().clone();
             Model m = networkDS.getDocument().getModel();
             newModel = newDoc.getModel();
-            ListOf reactions = m.getListOfReactions();
-            for (int i = 0;i < reactions.size(); i++) {
-                Reaction reaction = (Reaction) reactions.get(i);
-                if (!isInGraph(reaction.getId(), graph)) {
+           // ListOf reactions = m.getListOfReactions();
+           // for (int i = 0; i < reactions.size(); i++) {
+            //    Reaction reaction = (Reaction) reactions.get(i);
+            for(Reaction reaction:m.getListOfReactions()){
+                if (!isInGraph(reaction.getId(), graph)) {                    
                     newModel.removeReaction(reaction.getId());
                 }
             }
-            ListOf species = m.getListOfSpecies();
-            for (int i = 0; i < species.size(); i++) {
-                Species sp = (Species) species.get(i);
+            //ListOf species = m.getListOfSpecies();
+            //for (int i = 0; i < species.size(); i++) {
+            //    Species sp = (Species) species.get(i);
+            for(Species sp:m.getListOfSpecies()){
                 if (!this.isInReactions(newModel.getListOfReactions(), sp)) {
                     newModel.removeSpecies(sp.getId());
                 }
             }
-
+            
             SimpleBasicDataset dataset = new SimpleBasicDataset();
-
+            
             dataset.setDocument(newDoc);
             dataset.setDatasetName(biomassID + " - " + newModel.getId() + ".sbml");
             dataset.SetCluster(isCluster);
@@ -216,9 +230,9 @@ public class GetInfoAndTools {
             String p = networkDS.getPath().replace(name, "");
             p = p + newModel.getId();
             dataset.setPath(p);
-
+            
             NDCore.getDesktop().AddNewFile(dataset);
-
+            
             dataset.setGraph(graph);
             dataset.setSources(sourcesList);
             dataset.setBiomass(biomassID);
@@ -226,7 +240,7 @@ public class GetInfoAndTools {
         }
         return null;
     }
-
+    
     private boolean isInGraph(String id, Graph graph) {
         for (Node n : graph.getNodes()) {
             if (n.getId().contains(id)) {
@@ -235,17 +249,18 @@ public class GetInfoAndTools {
         }
         return false;
     }
-
-    private boolean isInReactions(ListOf listOfReactions, Species sp) {
-        for (int i = 0; i < listOfReactions.size(); i++) {
-            Reaction r = (Reaction) listOfReactions.get(i);
-            if (r.getProduct(sp.getId()) !=null || r.getReactant(sp.getId())!=null) {
+    
+    private boolean isInReactions(ListOf<Reaction> listOfReactions, Species sp) {
+       // for (int i = 0; i < listOfReactions.size(); i++) {
+       //     Reaction r = (Reaction) listOfReactions.get(i);
+        for(Reaction r:listOfReactions){
+            if (r.getProductForSpecies(sp.getId()) != null || r.getReactantForSpecies(sp.getId()) != null) {
                 return true;
             }
         }
         return false;
     }
-
+    
     public Model getModel() {
         return this.newModel;
     }

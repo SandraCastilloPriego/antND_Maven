@@ -36,12 +36,13 @@ import javax.swing.JTextArea;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+
 
 /**
  *
@@ -187,8 +188,8 @@ public class CycleDetectorTask extends AbstractTask {
             if(model.getReaction(cycle)!= null){
                   Reaction r = model.getReaction(cycle);
                   KineticLaw law = r.getKineticLaw();
-                  Double lowerBound = law.getParameter("LOWER_BOUND").getValue();
-                  Double upperBound = law.getParameter("UPPER_BOUND").getValue();                  
+                  Double lowerBound = law.getLocalParameter("LOWER_BOUND").getValue();
+                  Double upperBound = law.getLocalParameter("UPPER_BOUND").getValue();                  
                   ListOf spref= r.getListOfReactants();
                   
                   for(int i = 0; i < spref.size(); i++){

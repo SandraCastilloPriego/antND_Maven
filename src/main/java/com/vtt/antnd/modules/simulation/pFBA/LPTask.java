@@ -31,14 +31,20 @@ import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;
 import java.util.HashMap;
 import java.util.Map;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
+
 /**
  *
  * @author scsandra
@@ -100,8 +106,6 @@ public class LPTask extends AbstractTask {
         Graph g = createGraph();
         return g;
 
-    
-
     }
 
     private Graph createGraph() {
@@ -118,14 +122,7 @@ public class LPTask extends AbstractTask {
                 g.addNode2(reactionNode);
                 Reaction modelReaction = m.getReaction(r);
                 if (modelReaction != null) {
-                    Parameter parameter = modelReaction.getKineticLaw().getParameter("FLUX_VALUE");
-                    if (parameter == null) {
-                        Parameter flux=modelReaction.getKineticLaw().createParameter();
-                        flux.setId("FLUX_VALUE");
-                        flux.setValue(reaction.getFlux());
-                    } else {
-                        parameter.setValue(reaction.getFlux());
-                    }
+                    this.networkDS.setFlux(modelReaction.getId(), reaction.getFlux());
                 }
 
                 for (String reactant : reaction.getReactants()) {
@@ -205,13 +202,29 @@ public class LPTask extends AbstractTask {
         return fbam.getMaxObj();
     }
 
+    private double getObjectiveFBC(String r, Model model) {
+        try {
+            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+            for (Objective obj : plugin.getListOfObjectives()) {
+                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                    if (fobj.getReaction().equals(r)) {
+                        return fobj.getCoefficient();
+                    }
+                }
+            }
+        } catch (NullPointerException n) {
+            return 0.0;
+        }
+        return 0.0;
+    }
+
     private void createReactions() {
-        
+
         this.reactions = new HashMap<>();
-        
-        SBMLDocument doc = this.networkDS.getDocument();       
+
+        SBMLDocument doc = this.networkDS.getDocument();
         Model m = doc.getModel();
-        
+
         ListOf reactions = m.getListOfReactions();
         for (int i = 0; i < reactions.size(); i++) {
             Reaction r = (Reaction) reactions.get(i);
@@ -219,34 +232,46 @@ public class LPTask extends AbstractTask {
 
             try {
                 KineticLaw law = r.getKineticLaw();
-                Parameter lbound = law.getParameter("LOWER_BOUND");
-                Parameter ubound = law.getParameter("UPPER_BOUND");
-                try{
-                    Parameter objective = law.getParameter("OBJECTIVE_COEFFICIENT");
-                   // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
-                    reaction.setObjective(objective.getValue());
-                }catch(Exception exn){
-                    reaction.setObjective(0.0);
-                }
+                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+                
+                LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
+                    // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
+                reaction.setObjective(objective.getValue());              
                 reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {
-                reaction.setBounds(-1000, 1000);
-            }
+                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                if (plugin == null) {
+                    reaction.setBounds(-1000, 1000);
+                }
+                Parameter lbp = plugin.getLowerFluxBoundInstance();
+                Parameter ubp = plugin.getUpperFluxBoundInstance();
+                if (lbp != null) {
+                    reaction.setBounds(lbp.getValue(), ubp.getValue());
+                } else {
+                    reaction.setBounds(-1000, 1000);
+                }
 
+            }
+            try {
+                reaction.setObjective(getObjectiveFBC(r.getId(), m));
+            } catch (Exception ex) {
+                reaction.setObjective(0.0);
+            }
             ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
-                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());       
-               // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
+                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
+                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
             }
 
             spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
                 reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
-               // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
+                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
             }
             //System.out.println("-----------------");
             this.reactions.put(r.getId(), reaction);

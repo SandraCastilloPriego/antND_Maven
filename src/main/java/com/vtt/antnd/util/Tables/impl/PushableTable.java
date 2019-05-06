@@ -24,18 +24,21 @@ import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+
 
 /**
  * Creates a table for showing the data sets. It implements DataTable.
@@ -506,10 +509,11 @@ public class PushableTable implements DataTable, ActionListener {
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
                 // read bounds to know the direction of the edges
-                ListOf listOfReactants = r.getListOfReactants();
-                System.out.println(listOfReactants.size());
-                for (int e = 0; e < r.getNumReactants(); e++) {
-                    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
+               // ListOf listOfReactants = r.getListOfReactants();
+                //System.out.println(listOfReactants.size());
+                //for (int e = 0; e < r.getNumReactants(); e++) {
+                //    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
+                for(SpeciesReference spr:r.getListOfReactants()){
                     System.out.println(spr.getSpecies());
                     Species sp = model.getSpecies(spr.getSpecies());
                     System.out.println(sp.getName());
@@ -523,10 +527,11 @@ public class PushableTable implements DataTable, ActionListener {
 
                 }
 
-                ListOf listOfProducts = r.getListOfProducts();
-                for (int e = 0; e < r.getNumProducts(); e++) {
-                    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
-                    Species sp = model.getSpecies(spr.getSpecies());
+               // ListOf listOfProducts = r.getListOfProducts();
+                //for (int e = 0; e < r.getNumProducts(); e++) {
+                //    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
+                for(SpeciesReference spr:r.getListOfProducts()){  
+                     Species sp = model.getSpecies(spr.getSpecies());
 
                     Node spNode = g.getNode(sp.getId());
                     if (spNode == null) {
@@ -560,15 +565,21 @@ public class PushableTable implements DataTable, ActionListener {
         double lb = Double.NEGATIVE_INFINITY;
         double ub = Double.POSITIVE_INFINITY;
         Double flux = null;
-        if (r.getKineticLaw() != null) {
+        if (r.getKineticLaw() != null) {           
             KineticLaw law = r.getKineticLaw();
-            Parameter lbound = law.getParameter("LOWER_BOUND");
+            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
             lb = lbound.getValue();
-            Parameter ubound = law.getParameter("UPPER_BOUND");
+            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
             ub = ubound.getValue();
-            Parameter rflux = law.getParameter("FLUX_VALUE");
+            LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");
             if(flux != null)
                 flux = rflux.getValue();
+        } else {
+            FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");                       
+            Parameter lp = plugin.getLowerFluxBoundInstance();                        
+            Parameter up = plugin.getUpperFluxBoundInstance();
+            lb = lp.getValue();
+            ub = up.getValue();
         }
         if (flux != null) {
             if (flux > 0) {

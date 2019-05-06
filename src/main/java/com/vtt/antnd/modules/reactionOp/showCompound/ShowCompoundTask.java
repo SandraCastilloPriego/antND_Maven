@@ -28,14 +28,17 @@ import java.util.List;
 import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+
 
 /**
  *
@@ -88,9 +91,10 @@ public class ShowCompoundTask extends AbstractTask {
             SBMLDocument doc = this.networkDS.getDocument();
             Model m = doc.getModel();
             List<Species> possibleCompound = new ArrayList<>();
-            ListOf species = m.getListOfSpecies();
-            for (int i = 0; i < species.size(); i++) {
-                Species sp = (Species) species.get(i);
+         //   ListOf species = m.getListOfSpecies();
+          //  for (int i = 0; i < species.size(); i++) {
+          //      Species sp = (Species) species.get(i);
+            for(Species sp: m.getListOfSpecies()){
                 if (sp.getId().contains(this.compoundName) || sp.getName().contains(this.compoundName)) {
                     possibleCompound.add(sp);
                 }
@@ -118,11 +122,11 @@ public class ShowCompoundTask extends AbstractTask {
         for (Species sp : possibleReactions) {
             info.append(sp.getId()).append(" - ").append(sp.getName());
             info.append("\nPresent in: "); 
-            ListOf reactions = m.getListOfReactions();
-            for (int i = 0; i < reactions.size(); i++){
-                Reaction r = (Reaction) reactions.get(i);
-                
-                if (r.getReactant(sp.getId()) != null || r.getProduct(sp.getId()) != null) {
+           // ListOf reactions = m.getListOfReactions();
+            //for (int i = 0; i < reactions.size(); i++){
+            //    Reaction r = (Reaction) reactions.get(i);
+            for(Reaction r : m.getListOfReactions()){    
+                if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                     //info.append(r.getId()).append(", ");
                     showReactions(r, m);
                 }
@@ -136,23 +140,28 @@ public class ShowCompoundTask extends AbstractTask {
     private void showReactions(Reaction reaction, Model m) {
         KineticLaw law = reaction.getKineticLaw();
         if (law != null) {
-            Parameter lbound = law.getParameter("LOWER_BOUND");
-            Parameter ubound = law.getParameter("UPPER_BOUND");
+            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
             info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append(":\n");
         } else {
-            info.append(reaction.getId()).append(":\n");
+            FBCReactionPlugin plugin = (FBCReactionPlugin) reaction.getPlugin("fbc");                       
+            Parameter lp = plugin.getLowerFluxBoundInstance();                        
+            Parameter up = plugin.getUpperFluxBoundInstance();
+            info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lp.getValue()).append(" up: ").append(up.getValue()).append(":\n");
         }
         info.append("Reactants: \n");
-        ListOf spref = reaction.getListOfReactants();
-        for (int i = 0; i< spref.size(); i++) {
-            SpeciesReference sr = (SpeciesReference) spref.get(i);
+       // ListOf spref = reaction.getListOfReactants();
+       // for (int i = 0; i< spref.size(); i++) {
+       //     SpeciesReference sr = (SpeciesReference) spref.get(i);
+        for(SpeciesReference sr: reaction.getListOfReactants()){ 
             Species sp = m.getSpecies(sr.getSpecies());
             info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
         }
         info.append("Products: \n");
-        spref = reaction.getListOfProducts();
-        for (int i = 0; i< spref.size(); i++) {
-            SpeciesReference sr = (SpeciesReference) spref.get(i);
+        //spref = reaction.getListOfProducts();
+        //for (int i = 0; i< spref.size(); i++) {
+        //    SpeciesReference sr = (SpeciesReference) spref.get(i);
+        for(SpeciesReference sr: reaction.getListOfProducts()){    
             Species sp =  m.getSpecies(sr.getSpecies());
             info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
         }

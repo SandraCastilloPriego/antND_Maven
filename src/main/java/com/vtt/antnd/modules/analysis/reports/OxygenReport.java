@@ -14,6 +14,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.stream.XMLStreamException;
 import net.sf.dynamicreports.jasper.builder.JasperReportBuilder;
 import static net.sf.dynamicreports.report.builder.DynamicReports.cht;
 import static net.sf.dynamicreports.report.builder.DynamicReports.cmp;
@@ -29,13 +32,14 @@ import net.sf.dynamicreports.report.constant.SplitType;
 import net.sf.dynamicreports.report.datasource.DRDataSource;
 import net.sf.dynamicreports.report.exception.DRException;
 import net.sf.jasperreports.engine.JRDataSource;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+
 
 /**
  *
@@ -148,7 +152,7 @@ public class OxygenReport {
             Reaction r = (Reaction) reactions.get(i);
             if (r.getName().contains("exchange")|| r.getName().contains("Ex")  || r.getName().contains("growth")) {
                 KineticLaw law = r.getKineticLaw();
-                double flux = law.getParameter("FLUX_VALUE").getValue();
+                double flux = law.getLocalParameter("FLUX_VALUE").getValue();
                 Fdata.put(r.getName(), flux);
                 ListOf spref = r.getListOfProducts();
                 for (int e = 0; e < spref.size(); e++) {
@@ -164,6 +168,8 @@ public class OxygenReport {
                             Fdata.put(r.getName() + "-Relative", flux);
                         }
                     } catch (NumberFormatException ex) {
+                    } catch (XMLStreamException ex) {
+                        Logger.getLogger(OxygenReport.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
 
@@ -283,9 +289,9 @@ public class OxygenReport {
             }
             try {
                 KineticLaw law = r.getKineticLaw();
-                Parameter lbound = law.getParameter("LOWER_BOUND");
-                Parameter ubound = law.getParameter("UPPER_BOUND");
-                Parameter objective = law.getParameter("OBJECTIVE_COEFFICIENT");
+                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+                LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
                 reaction.setObjective(objective.getValue());
                 reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {

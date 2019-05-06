@@ -19,9 +19,8 @@ package com.vtt.antnd.modules.reactionOp.compareModels;
 
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.main.NDCore;
+import com.vtt.antnd.modules.analysis.reports.ReportFBATask;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarChart;
-import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarDataset;
-import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarExchangeDataset;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createPieChart;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createPieDataset;
 import com.vtt.antnd.parameters.SimpleParameterSet;
@@ -41,13 +40,15 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.general.PieDataset;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+
 
 /**
  *
@@ -162,9 +163,9 @@ public class CompareTask extends AbstractTask {
         DecimalFormat df = new DecimalFormat("#.####");
         KineticLaw law = reaction.getKineticLaw();
         if (law != null) {
-            Parameter lbound = law.getParameter("LOWER_BOUND");
-            Parameter ubound = law.getParameter("UPPER_BOUND");
-            Parameter flux = law.getParameter("FLUX_VALUE");
+            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
+            LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
             info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append("\n");
             try {
                 if (reaction2 == null) {
@@ -173,7 +174,7 @@ public class CompareTask extends AbstractTask {
                 } else {
                     KineticLaw law2 = reaction2.getKineticLaw();
                     if (law != null && law2 != null) {
-                        Parameter flux2 = law2.getParameter("FLUX_VALUE");
+                        LocalParameter flux2 = law2.getLocalParameter("FLUX_VALUE");
                         info.append("Flux1: ").append(df.format(flux.getValue())).append(" - Flux2: ").append(df.format(flux2.getValue())).append("\n");
                     }
                 }
@@ -210,13 +211,13 @@ public class CompareTask extends AbstractTask {
         DecimalFormat df = new DecimalFormat("#.####");
         KineticLaw law = reaction.getKineticLaw();
         if (law != null) {
-            Parameter flux = law.getParameter("FLUX_VALUE");
+            LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
             if (reaction2 == null) {
                 info.append(reaction.getId()).append(flux.getValue()).append("\n");
             } else {
                 KineticLaw law2 = reaction2.getKineticLaw();
                 if (law != null && law2 != null) {
-                    Parameter flux2 = law2.getLocalParameter("FLUX_VALUE");
+                    LocalParameter flux2 = law2.getLocalParameter("FLUX_VALUE");
                     if (!df.format(flux.getValue()).equals(df.format(flux2.getValue()))) {
                         info.append(reaction.getId()).append(":  ").append(df.format(flux.getValue())).append(" - ").append(df.format(flux2.getValue())).append(" --> ").append(reaction.getName()).append("\n");
                     }
@@ -263,7 +264,8 @@ public class CompareTask extends AbstractTask {
             area = new JTextArea("Model: " + data.getID() + ", " + data.getDatasetName() + "\n");
             area.setEditable(false);
             panel.add(area);
-            CategoryDataset dataset = createBarExchangeDataset(m);
+            ReportFBATask task = new ReportFBATask(data, null);
+            CategoryDataset dataset = task.createBarExchangeDataset(m);
             JFreeChart fluxesChart = createBarChart(dataset, "Exchange reactions in " + m.getId());
             JPanel fPanel = new JPanel();
             fPanel.add(new ChartPanel(fluxesChart));
@@ -278,7 +280,8 @@ public class CompareTask extends AbstractTask {
             area = new JTextArea("Model: " + data.getID() + ", " + data.getDatasetName() + "\n");
             area.setEditable(false);
             panel.add(area);
-            CategoryDataset dataset = createBarDataset(m);
+            ReportFBATask task = new ReportFBATask(data, null);
+            CategoryDataset dataset = task.createBarDataset(m);
             JFreeChart fluxesChart = createBarChart(dataset, "Important fluxes");
             panel.add(new ChartPanel(fluxesChart));
         }
@@ -295,9 +298,10 @@ public class CompareTask extends AbstractTask {
 
     private String getBigFluxes(Model m) {
         int i = 0;
-        ListOf listOfReactions = m.getListOfReactions();
-        for (int e = 0; e < m.getNumReactions(); e++) {
-            Reaction r = (Reaction) listOfReactions.get(e);
+        //ListOf listOfReactions = m.getListOfReactions();
+        //for (int e = 0; e < m.getNumReactions(); e++) {
+        //    Reaction r = (Reaction) listOfReactions.get(e);
+        for(Reaction r : m.getListOfReactions()){
             KineticLaw law = r.getKineticLaw();
             double flux = law.getLocalParameter("FLUX_VALUE").getValue();
             if (Math.abs(flux) >= 0.0001) {

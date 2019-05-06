@@ -37,11 +37,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
+
 
 /**
  *
@@ -97,10 +98,8 @@ public class KNeighborhoodTask extends AbstractTask {
                 NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
             }
             
-            Graph graph = this.networkDS.getGraph();
-            if (graph == null) {
-                graph = createGraph();
-            }
+            Graph graph = createGraph();
+           
 
             edu.uci.ics.jung.graph.Graph<String, String> g = this.getGraphForClustering(graph);
             String root = findTheRoot(this.rootNode, g);
@@ -182,6 +181,7 @@ public class KNeighborhoodTask extends AbstractTask {
                 SpeciesReference reactant = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(reactant.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
+                    //System.out.println(sp.getName());
                     Node reactantNode = g.getNode(sp.getId());
                     if (reactantNode == null) {
                         reactantNode = new Node(sp.getId(), sp.getName());
@@ -193,11 +193,12 @@ public class KNeighborhoodTask extends AbstractTask {
                 }
             }
             
-            spref = reaction.getListOfReactants();
+            spref = reaction.getListOfProducts();
             for (int e = 0; e< spref.size();e++) {
                 SpeciesReference product = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(product.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
+                   // System.out.println(sp.getName());
                     Node reactantNode = g.getNode(sp.getId());
                     if (reactantNode == null) {
                         reactantNode = new Node(sp.getId(), sp.getName());

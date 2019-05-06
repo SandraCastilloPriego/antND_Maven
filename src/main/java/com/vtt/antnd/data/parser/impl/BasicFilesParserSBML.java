@@ -20,8 +20,12 @@ package com.vtt.antnd.data.parser.impl;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
 import com.vtt.antnd.data.parser.Parser;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.SBMLReader;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.stream.XMLStreamException;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.SBMLReader;
 
 /**
  *
@@ -43,28 +47,33 @@ public class BasicFilesParserSBML implements Parser {
         dataset = new SimpleBasicDataset();
     }
 
-    static {
+   /* static {
         try {
             System.loadLibrary("sbmlj");
             /* Extra check to be sure we have access to libSBML: */
-            Class.forName("org.sbml.libsbml.libsbml");
+          /*  Class.forName("org.sbml.libsbml.libsbml");
         } catch (Exception e) {
             System.err.println("Error: could not load the libSBML library");
             System.exit(1);
         }
-    }
+    }*/
 
     @Override
     public void createDataset(String name) {
-        SBMLReader reader = new SBMLReader();
-        this.document = reader.readSBML(this.datasetPath);
-        dataset.setDocument(document);
-        dataset.setDatasetName(name);
-        dataset.setPath(this.datasetPath);
-        dataset.setIsParent(true);
-        if (document.getNumErrors() > 0) {
-            document.printErrors();
-            System.exit(1);
+        try {
+            SBMLReader reader = new SBMLReader();
+            this.document = reader.readSBML(this.datasetPath);
+            dataset.setDocument(document);
+            dataset.setDatasetName(name);
+            dataset.setPath(this.datasetPath);
+            dataset.setIsParent(true);
+            if (document.getNumErrors() > 0) {                
+                System.exit(1);
+            }
+        } catch (XMLStreamException ex) {
+            Logger.getLogger(BasicFilesParserSBML.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(BasicFilesParserSBML.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }

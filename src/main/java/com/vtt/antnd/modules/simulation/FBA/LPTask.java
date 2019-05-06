@@ -30,14 +30,14 @@ import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;
 import java.util.HashMap;
 import java.util.Map;
-import org.sbml.libsbml.KineticLaw;
-import org.sbml.libsbml.ListOf;
-import org.sbml.libsbml.Model;
-import org.sbml.libsbml.Parameter;
-import org.sbml.libsbml.Reaction;
-import org.sbml.libsbml.SBMLDocument;
-import org.sbml.libsbml.Species;
-import org.sbml.libsbml.SpeciesReference;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
+import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
 
 
 /**
@@ -100,7 +100,7 @@ public class LPTask extends AbstractTask {
             try {
                 Reaction reaction = (Reaction) reactions.get(i);
                 KineticLaw law = reaction.getKineticLaw();                
-                Parameter flux = law.getParameter("FLUX_VALUE");
+                LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
                 flux.setValue(0.0);
             } catch (Exception ex) {
                
@@ -130,9 +130,9 @@ public class LPTask extends AbstractTask {
                 g.addNode2(reactionNode);
                 Reaction modelReaction = m.getReaction(r);
                 if (modelReaction != null) {
-                    Parameter parameter = modelReaction.getKineticLaw().getParameter("FLUX_VALUE");
+                    LocalParameter parameter = modelReaction.getKineticLaw().getLocalParameter("FLUX_VALUE");
                     if (parameter == null) {
-                        Parameter p = modelReaction.getKineticLaw().createParameter();
+                        LocalParameter p = modelReaction.getKineticLaw().createLocalParameter();
                         p.setId("FLUX_VALUE");
                         p.setValue(reaction.getFlux());
                     } else {
@@ -211,10 +211,10 @@ public class LPTask extends AbstractTask {
 
             try {
                 KineticLaw law = r.getKineticLaw();
-                Parameter lbound = law.getParameter("LOWER_BOUND");
-                Parameter ubound = law.getParameter("UPPER_BOUND");
+                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
+                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                 try{
-                    Parameter objective = law.getParameter("OBJECTIVE_COEFFICIENT");
+                    LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
                    // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
                     reaction.setObjective(objective.getValue());
                 }catch(Exception exn){

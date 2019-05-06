@@ -34,7 +34,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +46,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.xml.stream.XMLStreamException;
 import org.freehep.graphics2d.VectorGraphics;
 import org.freehep.graphicsio.pdf.PDFGraphics2D;
-import org.sbml.libsbml.SBMLWriter;
+import org.sbml.jsbml.SBMLException;
+import org.sbml.jsbml.SBMLWriter;
 
 /**
  * This class implements a selector of data sets
@@ -294,7 +294,15 @@ public class ItemSelector extends JPanel implements ActionListener,
                     @Override
                     public void actionPerformed(ActionEvent e) {     
                         SBMLWriter writer     = new SBMLWriter();                     
-                        boolean writeSBML = writer.writeSBML(file.getDocument(), field.getText());                      
+                        try {                      
+                            writer.writeSBML(file.getDocument(), new File(field.getText()));
+                        } catch (XMLStreamException ex) {
+                            Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (SBMLException ex) {
+                            Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                         frame.doDefaultCloseAction();
                     }
                 });
@@ -326,14 +334,14 @@ public class ItemSelector extends JPanel implements ActionListener,
             NDCore.getDesktop().addInternalFrame(frame);
 
             PrintPaths print = new PrintPaths(file.getDocument().getModel());
-            try {
+           // try {
 
                 System.out.println("Visualize");                
                 pn.add(print.printPathwayInFrame(file.getGraph()));
 
-            } catch (NullPointerException ex) {
-                System.out.println(ex.toString());
-            }
+            //} catch (NullPointerException ex) {
+            //    System.out.println(ex.toString());
+           // }
         }
     }
 

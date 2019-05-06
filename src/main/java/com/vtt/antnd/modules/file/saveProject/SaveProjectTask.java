@@ -42,7 +42,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.stream.XMLStreamException;
-import org.sbml.libsbml.SBMLWriter;
+import org.sbml.jsbml.SBMLException;
+import org.sbml.jsbml.SBMLWriter;
+
 
 /**
  *
@@ -112,7 +114,13 @@ public class SaveProjectTask extends AbstractTask {
                 zipStream.putNextEntry(new ZipEntry(datafile.getDatasetName()));
                 File tempFile = File.createTempFile(datafile.getDatasetName(), ".tmp");
                 SBMLWriter writer = new SBMLWriter();
-                writer.writeSBML(datafile.getDocument(), tempFile.getAbsolutePath());
+                try {
+                    writer.writeSBML(datafile.getDocument(), new File(tempFile.getAbsolutePath()));
+                } catch (XMLStreamException ex) {
+                    Logger.getLogger(SaveProjectTask.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (SBMLException ex) {
+                    Logger.getLogger(SaveProjectTask.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
                 try (FileInputStream fileStream = new FileInputStream(tempFile)) {
                     StreamCopy copyMachine = new StreamCopy();
