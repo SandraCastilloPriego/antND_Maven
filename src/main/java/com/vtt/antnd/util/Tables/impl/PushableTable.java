@@ -1,12 +1,14 @@
 package com.vtt.antnd.util.Tables.impl;
 
+import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
-import com.vtt.antnd.desktop.impl.PrintPaths;
+import com.vtt.antnd.desktop.impl.PrintPaths2;
 import com.vtt.antnd.main.NDCore;
+import com.vtt.antnd.util.GetInfoAndTools;
 import com.vtt.antnd.util.Tables.DataTable;
 import com.vtt.antnd.util.Tables.DataTableModel;
 import java.awt.*;
@@ -28,17 +30,12 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
-import org.sbml.jsbml.KineticLaw;
 
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
-import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
-
 
 /**
  * Creates a table for showing the data sets. It implements DataTable.
@@ -54,6 +51,7 @@ public class PushableTable implements DataTable, ActionListener {
     private StringSelection stsel;
     private ArrayList<register> registers;
     int indexRegister = 0;
+    GetInfoAndTools tools;
 
     public PushableTable() {
         registers = new ArrayList<register>();
@@ -61,6 +59,7 @@ public class PushableTable implements DataTable, ActionListener {
 
     public PushableTable(DataTableModel model) {
         this.model = model;
+        this.tools = new GetInfoAndTools();
         ((AbstractTableModel) this.model).fireTableDataChanged();
         table = this.tableRowsColor(model);
         setTableProperties();
@@ -173,16 +172,16 @@ public class PushableTable implements DataTable, ActionListener {
             Model m = this.model.getDataset().getDocument().getModel();
             for (int i = 0; i < this.getTable().getColumnCount(); i++) {
                 String columnName = this.getTable().getColumnName(i);
-                if (columnName.matches("Id")) {                    
+                if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
                     Reaction reaction = m.getReaction(id);
                     ListOf products = reaction.getListOfProducts();
-                    for(int e =0; e < products.size();e++){
+                    for (int e = 0; e < products.size(); e++) {
                         SpeciesReference spr = (SpeciesReference) products.get(e);
                         Species sp = m.getSpecies(spr.getSpecies());
-                        if (sp.getBoundaryCondition()== true) {
+                        if (sp.getBoundaryCondition() == true) {
                             return true;
-                        } 
+                        }
                     }
                 }
             }
@@ -194,46 +193,50 @@ public class PushableTable implements DataTable, ActionListener {
 
     public boolean isTransport(int row) {
         try {
-            
+
             Model m = this.model.getDataset().getDocument().getModel();
-            for (int i = 0; i < this.getTable().getColumnCount(); i++) {                
+            for (int i = 0; i < this.getTable().getColumnCount(); i++) {
                 String columnName = this.getTable().getColumnName(i);
-                if (columnName.matches("Id")) {                    
+                if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
                     Reaction reaction = m.getReaction(id);
-                     ListOf reactants = reaction.getListOfReactants();
+                    ListOf reactants = reaction.getListOfReactants();
                     ArrayList compartReactants = new ArrayList<String>();
-                    for(int e =0; e < reactants.size();e++){
+                    for (int e = 0; e < reactants.size(); e++) {
                         SpeciesReference spr = (SpeciesReference) reactants.get(e);
                         Species sp = m.getSpecies(spr.getSpecies());
                         compartReactants.add(sp.getCompartment());
                     }
                     ListOf products = reaction.getListOfProducts();
                     ArrayList compartProducts = new ArrayList<String>();
-                    for(int e =0; e < products.size();e++){
+                    for (int e = 0; e < products.size(); e++) {
                         SpeciesReference spr = (SpeciesReference) products.get(e);
                         Species sp = m.getSpecies(spr.getSpecies());
                         compartProducts.add(sp.getCompartment());
-                        if (sp.getBoundaryCondition()== true) {
+                        if (sp.getBoundaryCondition() == true) {
                             return false;
-                        } 
+                        }
                     }
-                    
-                    for(int e = 0; e < compartReactants.size(); e++){
-                        if(!compartProducts.contains(compartReactants.get(e))){
+
+                    for (int e = 0; e < compartReactants.size(); e++) {
+                        if (!compartProducts.contains(compartReactants.get(e))) {
                             return true;
                         }
                     }
-                    for(int e = 0; e < compartProducts.size(); e++){
-                        if(!compartReactants.contains(compartProducts.get(e))){
+                    for (int e = 0; e < compartProducts.size(); e++) {
+                        if (!compartReactants.contains(compartProducts.get(e))) {
                             return true;
                         }
                     }
-                    
+
                     Set<String> uniqueCom = new HashSet<String>(compartReactants);
-                    if(uniqueCom.size() > 1) return true;
+                    if (uniqueCom.size() > 1) {
+                        return true;
+                    }
                     uniqueCom = new HashSet<String>(compartProducts);
-                    if(uniqueCom.size() > 1) return true;
+                    if (uniqueCom.size() > 1) {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -463,23 +466,20 @@ public class PushableTable implements DataTable, ActionListener {
                 reactions.add(id);
             }
             Model m = this.model.getDataset().getDocument().getModel();
-            Graph g = this.getGraph(m, reactions);
+            AntGraph g = this.getGraph(m, reactions);
 
             JInternalFrame frame = new JInternalFrame("ReactionVis", true, true, true, true);
-            JPanel pn = new JPanel();
-            JScrollPane panel = new JScrollPane(pn);
 
-            frame.setSize(new Dimension(700, 500));
-            frame.add(panel);
             NDCore.getDesktop().addInternalFrame(frame);
+            Dataset newDataset = tools.createDataFile(g, this.model.getDataset(), null, null, false, false);
 
-            PrintPaths print = new PrintPaths(m);
+            PrintPaths2 print = new PrintPaths2(newDataset);
 
             try {
 
                 System.out.println("Visualize");
-                pn.add(print.printPathwayInFrame(g));
-
+                frame.add(print.printPathwayInFrame(g));
+                frame.pack();
             } catch (NullPointerException ex) {
                 System.out.println(ex.toString());
             }
@@ -489,12 +489,12 @@ public class PushableTable implements DataTable, ActionListener {
         System.gc();
     }
 
-    public Graph getGraph(Model model, ArrayList<String> reactions) {
+    public AntGraph getGraph(Model model, ArrayList<String> reactions) {
 
-        java.util.List<Node> nodeList = new ArrayList<>();
-        java.util.List<Edge> edgeList = new ArrayList<>();
+        java.util.List<AntNode> nodeList = new ArrayList<>();
+        java.util.List<AntEdge> edgeList = new ArrayList<>();
 
-        Graph g = new Graph(nodeList, edgeList);
+        AntGraph g = new AntGraph(nodeList, edgeList);
 
         try {
             // For eac reaction in the model, a Node is created in the graph
@@ -503,23 +503,23 @@ public class PushableTable implements DataTable, ActionListener {
                 Reaction r = model.getReaction(reactions.get(i));
                 System.out.println(r.getId());
                 //Node is created
-                Node reactionNode = new Node(r.getId(), r.getName());
-               // this.setPosition(reactionNode, g);
+                AntNode reactionNode = new AntNode(r.getId(), r.getName());
+                // this.setPosition(reactionNode, g);
 
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
                 // read bounds to know the direction of the edges
-               // ListOf listOfReactants = r.getListOfReactants();
+                // ListOf listOfReactants = r.getListOfReactants();
                 //System.out.println(listOfReactants.size());
                 //for (int e = 0; e < r.getNumReactants(); e++) {
                 //    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
-                for(SpeciesReference spr:r.getListOfReactants()){
+                for (SpeciesReference spr : r.getListOfReactants()) {
                     System.out.println(spr.getSpecies());
                     Species sp = model.getSpecies(spr.getSpecies());
                     System.out.println(sp.getName());
-                    Node spNode = g.getNode(sp.getId());
+                    AntNode spNode = g.getNode(sp.getId());
                     if (spNode == null) {
-                        spNode = new Node(sp.getId(), sp.getName());
+                        spNode = new AntNode(sp.getId(), sp.getName());
                     }
                     //this.setPosition(spNode, g);
                     g.addNode2(spNode);
@@ -527,15 +527,15 @@ public class PushableTable implements DataTable, ActionListener {
 
                 }
 
-               // ListOf listOfProducts = r.getListOfProducts();
+                // ListOf listOfProducts = r.getListOfProducts();
                 //for (int e = 0; e < r.getNumProducts(); e++) {
                 //    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
-                for(SpeciesReference spr:r.getListOfProducts()){  
-                     Species sp = model.getSpecies(spr.getSpecies());
+                for (SpeciesReference spr : r.getListOfProducts()) {
+                    Species sp = model.getSpecies(spr.getSpecies());
 
-                    Node spNode = g.getNode(sp.getId());
+                    AntNode spNode = g.getNode(sp.getId());
                     if (spNode == null) {
-                        spNode = new Node(sp.getId(), sp.getName());
+                        spNode = new AntNode(sp.getId(), sp.getName());
                     }
                     //this.setPosition(spNode, g);
                     g.addNode2(spNode);
@@ -551,9 +551,9 @@ public class PushableTable implements DataTable, ActionListener {
         return g;
     }
 
-    private void setPosition(Node node, Graph graph) {
+    private void setPosition(AntNode node, AntGraph graph) {
         if (graph != null) {
-            Node gNode = graph.getNode(node.getId());
+            AntNode gNode = graph.getNode(node.getId());
             if (gNode != null) {
                 node.setPosition(gNode.getPosition());
             }
@@ -562,25 +562,11 @@ public class PushableTable implements DataTable, ActionListener {
 
     private int getDirection(Reaction r) {
         int direction = 2;
-        double lb = Double.NEGATIVE_INFINITY;
-        double ub = Double.POSITIVE_INFINITY;
-        Double flux = null;
-        if (r.getKineticLaw() != null) {           
-            KineticLaw law = r.getKineticLaw();
-            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-            lb = lbound.getValue();
-            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-            ub = ubound.getValue();
-            LocalParameter rflux = law.getLocalParameter("FLUX_VALUE");
-            if(flux != null)
-                flux = rflux.getValue();
-        } else {
-            FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");                       
-            Parameter lp = plugin.getLowerFluxBoundInstance();                        
-            Parameter up = plugin.getUpperFluxBoundInstance();
-            lb = lp.getValue();
-            ub = up.getValue();
-        }
+
+        Dataset dataset = this.model.getDataset();
+        Double lb = dataset.getLowerBound(r.getId());
+        Double ub = dataset.getUpperBound(r.getId());
+        Double flux = dataset.getFlux(r.getId());
         if (flux != null) {
             if (flux > 0) {
                 direction = 1;
@@ -599,19 +585,19 @@ public class PushableTable implements DataTable, ActionListener {
         return direction;
     }
 
-    private Edge addEdge(Node node1, Node node2, String name, int direction) {
-        Edge e = null;
+    private AntEdge addEdge(AntNode node1, AntNode node2, String name, int direction) {
+        AntEdge e = null;
         switch (direction) {
             case 1:
-                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(true);
                 break;
             case 2:
-                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(false);
                 break;
             case 0:
-                e = new Edge(name + " - " + uniqueId.nextId(), node2, node1);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node2, node1);
                 e.setDirection(true);
                 break;
             default:

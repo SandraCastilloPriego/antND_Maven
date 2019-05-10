@@ -21,8 +21,8 @@ import com.vtt.antnd.data.ColumnName;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.util.Tables.DataTableModel;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -34,11 +34,9 @@ import javax.swing.table.AbstractTableModel;
 import javax.xml.stream.XMLStreamException;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
-import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SpeciesReference;
 import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 import org.sbml.jsbml.ext.fbc.FluxObjective;
 import org.sbml.jsbml.ext.fbc.Objective;
 import org.sbml.jsbml.ext.fbc.Objective.Type;
@@ -120,29 +118,9 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                 case "Reaction extended":
                     return getReactionExt(r, this.dataset.getDocument().getModel());
                 case "Lower bound":
-                    if (r.getKineticLaw() != null) {
-                        LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
-                        if (lp == null) {
-                            lp = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
-                        }
-                        return lp.getValue();
-                    } else {
-                        FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                        Parameter lp = plugin.getLowerFluxBoundInstance();
-                        return lp.getValue();
-                    }
+                   return this.dataset.getLowerBound(r.getId());
                 case "Upper bound":
-                    if (r.getKineticLaw() != null) {
-                        LocalParameter lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
-                        if (lp == null) {
-                            lp = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
-                        }
-                        return lp.getValue();
-                    } else {
-                        FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                        Parameter lp = plugin.getUpperFluxBoundInstance();
-                        return lp.getValue();
-                    }
+                   return this.dataset.getUpperBound(r.getId()); 
                 case "Notes":
                     String notes;
                     try {
@@ -208,7 +186,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     @Override
     @SuppressWarnings("fallthrough")
     public void setValueAt(Object aValue, int row, int column) {
-        try {
+       // try {
             String info = "";
             Model model = this.dataset.getDocument().getModel();
             Reaction r = model.getReaction(row);
@@ -223,8 +201,8 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         dataset.addInfo(info);
 
                         this.dataset.getDocument().getModel().removeReaction(r.getId());
-                        Graph g = this.dataset.getGraph();
-                        Node n = g.getNode(r.getId());
+                        AntGraph g = this.dataset.getGraph();
+                        AntNode n = g.getNode(r.getId());
                         if (n != null) {
                             g.removeNode(n.getId());
                         }
@@ -248,24 +226,10 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                     dataset.addInfo(info);
                     return;
                 case "Lower bound":
-                    LocalParameter parameter = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
-                    if (parameter == null) {
-                        parameter = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
-                    }
-                    info = info + "\n- Lower bound of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
-                    dataset.addInfo(info);
-
-                    parameter.setValue(Double.valueOf(aValue.toString()));
+                    dataset.setLowerBound(r.getId(), Double.valueOf(aValue.toString()));
                     return;
                 case "Upper bound":
-                    parameter = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
-                    if (parameter == null) {
-                        parameter = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
-                    }
-                    info = info + "\n- Upper bound of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
-                    dataset.addInfo(info);
-
-                    parameter.setValue(Double.valueOf(aValue.toString()));
+                    dataset.setUpperBound(r.getId(), Double.valueOf(aValue.toString()));
                     return;
                 case "Notes": {
                     try {
@@ -280,11 +244,6 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
                 case "Objective":
                     try {
-                        parameter = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
-                        parameter = r.getKineticLaw().getLocalParameter("OBJ_" + r.getId());
-                    } catch (NullPointerException n) {
-                    }
-                    try {
                         FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
 
                         FluxObjective fx = new FluxObjective();
@@ -294,9 +253,20 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         if (Double.valueOf(aValue.toString()) < 0) {
                             type = Objective.Type.MINIMIZE;
                         }
-                        Objective obj = plugin.createObjective("obj" + r.getId(), type);
-                        obj.addFluxObjective(fx);
-                        plugin.setActiveObjective(obj);
+                        Objective objf = null;
+                        for (Objective obj : plugin.getListOfObjectives()) {
+                            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                                if (fobj.getReaction().equals(r.getId())) {
+                                    objf = obj;
+                                    break;
+                                }
+                            }
+                        }
+                        if (objf == null) {
+                            objf = plugin.createObjective("obj" + r.getId(), type);
+                        }
+                        objf.addFluxObjective(fx);
+                        plugin.setActiveObjective(objf);
                     } catch (NullPointerException n) {
                         System.out.println("there is no FBCPlugin");
                         FBCModelPlugin plugin = new FBCModelPlugin(model);
@@ -323,9 +293,9 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
             }
 
             fireTableCellUpdated(row, column);
-        } catch (Exception e) {
+        //} catch (Exception e) {
 
-        }
+        //}
     }
 
     @Override

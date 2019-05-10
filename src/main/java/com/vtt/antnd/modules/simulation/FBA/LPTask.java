@@ -20,9 +20,9 @@ package com.vtt.antnd.modules.simulation.FBA;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.util.GetInfoAndTools;
 import com.vtt.antnd.parameters.SimpleParameterSet;
@@ -34,11 +34,15 @@ import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
 
 /**
  *
@@ -82,51 +86,51 @@ public class LPTask extends AbstractTask {
         setStatus(TaskStatus.PROCESSING);
         resetFluxes(networkDS.getDocument().getModel());
         finishedPercentage = 0.1f;
-        Graph g = optimize();
+        AntGraph g = optimize();
         if (g != null) {
             Dataset newDataset = this.tools.createDataFile(g, networkDS, "- FBA", this.networkDS.getSources(), false, false);
             String info = "Objective value of the objective : " + this.objective;
             this.networkDS.addInfo(info);
-            this.networkDS.setReactionsFA(reactions);            
+            this.networkDS.setReactionsFA(reactions);
             newDataset.addInfo(this.networkDS.getInfo().getText());
         }
         finishedPercentage = 1f;
         setStatus(TaskStatus.FINISHED);
     }
-    
-    public void resetFluxes(Model model){
+
+    public void resetFluxes(Model model) {
         ListOf reactions = model.getListOfReactions();
-        for(int i = 0; i < reactions.size(); i++){
+        for (int i = 0; i < reactions.size(); i++) {
             try {
                 Reaction reaction = (Reaction) reactions.get(i);
-                KineticLaw law = reaction.getKineticLaw();                
+                KineticLaw law = reaction.getKineticLaw();
                 LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
                 flux.setValue(0.0);
             } catch (Exception ex) {
-               
+
             }
         }
     }
 
-    private Graph optimize() {
+    private AntGraph optimize() {
         createReactions();
         objective = this.getFlux();
 
         if (objective > 0.0) {
-            Graph g = createGraph();
+            AntGraph g = createGraph();
             return g;
         }
         return null;
 
     }
 
-    private Graph createGraph() {
+    private AntGraph createGraph() {
         Model m = this.networkDS.getDocument().getModel();
-        Graph g = new Graph(null, null);
+        AntGraph g = new AntGraph(null, null);
         for (String r : reactions.keySet()) {
             ReactionFA reaction = reactions.get(r);
             if (reaction != null && Math.abs(reaction.getFlux()) > 0.000001) {
-                Node reactionNode = new Node(reaction.getId(), String.format("%.3g%n", reaction.getFlux()));                
+                AntNode reactionNode = new AntNode(reaction.getId(), String.format("%.3g%n", reaction.getFlux()));
                 g.addNode2(reactionNode);
                 Reaction modelReaction = m.getReaction(r);
                 if (modelReaction != null) {
@@ -142,32 +146,32 @@ public class LPTask extends AbstractTask {
 
                 for (String reactant : reaction.getReactants()) {
                     String name = m.getSpecies(reactant).getName();
-                    Node reactantNode = g.getNode(reactant);
+                    AntNode reactantNode = g.getNode(reactant);
                     if (reactantNode == null) {
-                        reactantNode = new Node(reactant, name);
+                        reactantNode = new AntNode(reactant, name);
                     }
-                    g.addNode2(reactantNode);                  
-                    Edge e = null;
+                    g.addNode2(reactantNode);
+                    AntEdge e = null;
                     if (reaction.getFlux() > 0) {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
                     } else {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
                     }
 
                     g.addEdge(e);
                 }
                 for (String product : reaction.getProducts()) {
                     String name = m.getSpecies(product).getName();
-                    Node reactantNode = g.getNode(product);
+                    AntNode reactantNode = g.getNode(product);
                     if (reactantNode == null) {
-                        reactantNode = new Node(product, name);
-                    }                    
+                        reactantNode = new AntNode(product, name);
+                    }
                     g.addNode2(reactantNode);
-                    Edge e = null;
+                    AntEdge e = null;
                     if (reaction.getFlux() > 0) {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
                     } else {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
                     }
 
                     g.addEdge(e);
@@ -179,10 +183,6 @@ public class LPTask extends AbstractTask {
 
     public double getFlux() {
         FBA fba = new FBA();
-        /*ReactionFA objectiveReaction = new ReactionFA("objective");
-         objectiveReaction.addReactant(objective, 1.0);
-         objectiveReaction.setBounds(0, 1000);*/
-        // this.reactions.put("objective", objectiveReaction);
         fba.setModel(this.reactions, this.networkDS.getDocument().getModel());
         try {
             Map<String, Double> soln = fba.run();
@@ -197,13 +197,29 @@ public class LPTask extends AbstractTask {
         return fba.getMaxObj();
     }
 
+    private double getObjectiveFBC(String r, Model model) {
+        try {
+            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+            for (Objective obj : plugin.getListOfObjectives()) {
+                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                    if (fobj.getReaction().equals(r)) {
+                        return fobj.getCoefficient();
+                    }
+                }
+            }
+        } catch (NullPointerException n) {
+            return 0.0;
+        }
+        return 0.0;
+    }
+
     private void createReactions() {
-        
+
         this.reactions = new HashMap<>();
-        
-        SBMLDocument doc = this.networkDS.getDocument();       
+
+        SBMLDocument doc = this.networkDS.getDocument();
         Model m = doc.getModel();
-        
+
         ListOf reactions = m.getListOfReactions();
         for (int i = 0; i < reactions.size(); i++) {
             Reaction r = (Reaction) reactions.get(i);
@@ -213,34 +229,42 @@ public class LPTask extends AbstractTask {
                 KineticLaw law = r.getKineticLaw();
                 LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
                 LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                try{
-                    LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
-                   // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
-                    reaction.setObjective(objective.getValue());
-                }catch(Exception exn){
-                    reaction.setObjective(0.0);
-                }
+                LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
+                // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
+                reaction.setObjective(objective.getValue());
                 reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {
-                reaction.setBounds(-1000, 1000);
+                try {
+                    FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                    Parameter lbp = plugin.getLowerFluxBoundInstance();
+                    Parameter ubp = plugin.getUpperFluxBoundInstance();
+                    reaction.setBounds(lbp.getValue(), ubp.getValue());
+                } catch (NullPointerException n) {
+                    reaction.setBounds(-1000, 1000);
+                }
+                try {
+                    reaction.setObjective(getObjectiveFBC(r.getId(), m));
+                } catch (Exception ex2) {
+                    reaction.setObjective(0.0);
+                }
             }
 
             ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
-                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());       
-               // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
+                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
+                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
             }
 
             spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size();e++) {
+            for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
                 Species sp = m.getSpecies(s.getSpecies());
                 reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
-               // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
+                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
             }
-            
+
             this.reactions.put(r.getId(), reaction);
         }
     }

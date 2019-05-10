@@ -19,9 +19,9 @@ package com.vtt.antnd.modules.file.saveProject;
 
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.util.StreamCopy;
 import com.vtt.antnd.util.taskControl.AbstractTask;
@@ -142,7 +142,7 @@ public class SaveProjectTask extends AbstractTask {
             String info = datafile.getInfo().getText();
             String biomass = "";//datafile.getBiomassId();
             List<String> sources = datafile.getSources();
-            Graph graph = datafile.getGraph();
+            AntGraph graph = datafile.getGraph();
             zipStream.putNextEntry(new ZipEntry(datafile.getDatasetName() + ".info"));
             File tempFile = File.createTempFile(datafile.getDatasetName() + "-info", ".tmp");
 
@@ -165,7 +165,7 @@ public class SaveProjectTask extends AbstractTask {
             }
             if (graph != null) {
                 System.out.println("Graph"+ graph.getNodes().size());
-                for (Node node : graph.getNodes()) {
+                for (AntNode node : graph.getNodes()) {
                     try {
                         String name = " ";
                         if (node.getName() != null) {
@@ -192,7 +192,7 @@ public class SaveProjectTask extends AbstractTask {
                         System.out.println("Node failed");
                     }
                 }
-                for (Edge edge : graph.getEdges()) {
+                for (AntEdge edge : graph.getEdges()) {
                     try {
                         writer.write("\nEdges= " + edge.getId() + " // " + edge.getSource().getId() + " || " + edge.getDestination().getId() + " // " + String.valueOf(edge.getDirection()));
                     } catch (Exception e) {

@@ -10,8 +10,8 @@ import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import com.vtt.antnd.data.MetColumnName;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.util.Tables.DataTableModel;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -113,8 +113,8 @@ public class MetaboliteDataModel extends AbstractTableModel implements DataTable
                         info = info + "\n- The compound " + r.getId() + " - " + r.getName() + " has been removed";
                         dataset.addInfo(info);
                         this.dataset.getDocument().getModel().removeSpecies(r.getId());
-                        Graph g = this.dataset.getGraph();
-                        Node n = g.getNode(r.getId());
+                        AntGraph g = this.dataset.getGraph();
+                        AntNode n = g.getNode(r.getId());
                         if (n != null) {
                             g.removeNode(n.getId());
                         }

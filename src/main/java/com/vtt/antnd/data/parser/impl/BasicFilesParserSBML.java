@@ -67,6 +67,7 @@ public class BasicFilesParserSBML implements Parser {
             dataset.setDatasetName(name);
             dataset.setPath(this.datasetPath);
             dataset.setIsParent(true);
+           
             if (document.getNumErrors() > 0) {                
                 System.exit(1);
             }

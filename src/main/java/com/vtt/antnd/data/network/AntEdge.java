@@ -24,22 +24,22 @@ import org.jgrapht.graph.DefaultEdge;
  *
  * @author scsandra
  */
-public class Edge extends DefaultEdge{
+public class AntEdge extends DefaultEdge{
 
         private String id;
-        private Node source;
-        private Node destination;
+        private AntNode source;
+        private AntNode destination;
         private boolean directional;
         
                
-        public Edge(String id, Node source, Node destination) {
+        public AntEdge(String id, AntNode source, AntNode destination) {
                 this.directional = true;
                 this.id = id;
                 this.source = source;
                 this.destination = destination;
         }
         
-         public Edge(String id, Node source, Node destination, boolean directional) {                
+         public AntEdge(String id, AntNode source, AntNode destination, boolean directional) {                
                 this.id = id;
                 this.source = source;
                 this.destination = destination;
@@ -58,11 +58,11 @@ public class Edge extends DefaultEdge{
                 return id;
         }
 
-        public Node getDestination() {
+        public AntNode getDestination() {
                 return destination;
         }
 
-        public Node getSource() {
+        public AntNode getSource() {
                 return source;
         }
 
@@ -71,11 +71,11 @@ public class Edge extends DefaultEdge{
                 return source + " " + destination;
         }
         
-        public void setSource(Node source){
+        public void setSource(AntNode source){
                 this.source = source;
         }
         
-        public void setDestination(Node destination){
+        public void setDestination(AntNode destination){
                 this.destination = destination;
         }
         
@@ -84,8 +84,8 @@ public class Edge extends DefaultEdge{
         }       
       
         @Override
-        public Edge clone(){
-                Edge e = new Edge(this.id, this.source, this.destination);
+        public AntEdge clone(){
+                AntEdge e = new AntEdge(this.id, this.source, this.destination);
                 return e;
         }
              

@@ -18,9 +18,9 @@
 package com.vtt.antnd.modules.analysis.clusteringkmeans;
 
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.util.GetInfoAndTools;
 import com.vtt.antnd.parameters.SimpleParameterSet;
@@ -94,7 +94,7 @@ public class ClusteringTask extends AbstractTask {
                 setStatus(TaskStatus.ERROR);
                 NDCore.getDesktop().displayErrorMessage("This data set doesn't contain a valid graph.");
             }
-            Graph graph = this.networkDS.getGraph();
+            AntGraph graph = this.networkDS.getGraph();
 
             edu.uci.ics.jung.graph.Graph<String, String> g = this.getGraphForClustering(graph);
             VoltageClusterer cluster = new VoltageClusterer(g, this.numberOfClusters);
@@ -121,20 +121,20 @@ public class ClusteringTask extends AbstractTask {
         }
     }
 
-    public edu.uci.ics.jung.graph.Graph<String, String> getGraphForClustering(Graph graph) {
+    public edu.uci.ics.jung.graph.Graph<String, String> getGraphForClustering(AntGraph graph) {
         edu.uci.ics.jung.graph.Graph<String, String> g = new SparseMultigraph<>();
 
-        List<Node> nodes = graph.getNodes();
-        List<Edge> edges = graph.getEdges();
+        List<AntNode> nodes = graph.getNodes();
+        List<AntEdge> edges = graph.getEdges();
         System.out.println("Number of nodes: " + nodes.size() + " - " + edges.size());
 
-        for (Node node : nodes) {
+        for (AntNode node : nodes) {
             if (node != null) {
                 g.addVertex(node.getId());
             }
         }
 
-        for (Edge edge : edges) {
+        for (AntEdge edge : edges) {
             if (edge != null) {
                 g.addEdge(edge.getId(), edge.getSource().getId(), edge.getDestination().getId(), EdgeType.DIRECTED);
             }
@@ -145,10 +145,10 @@ public class ClusteringTask extends AbstractTask {
 
     private void createDataSet(Collection<Set<String>> result) {
        Map<Integer, Color> colors = new HashMap<>();
-        Graph graph = this.networkDS.getGraph().clone();
-        List<Node> nodes = graph.getNodes();
+        AntGraph graph = this.networkDS.getGraph().clone();
+        List<AntNode> nodes = graph.getNodes();
 
-        for (Node n : nodes) {
+        for (AntNode n : nodes) {
             int cluster = getClusterNumber(n.getId(), result);
             n.setId(n.getId() + " :" + n.getName() + "(" + cluster + ")");
             if (colors.containsKey(cluster)) {

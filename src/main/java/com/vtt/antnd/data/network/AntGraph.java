@@ -24,12 +24,12 @@ import java.util.List;
  *
  * @author scsandra
  */
-public class Graph {
+public class AntGraph {
 
-    private final List<Node> nodes;
-    private final List<Edge> edges;
+    private final List<AntNode> nodes;
+    private final List<AntEdge> edges;
 
-    public Graph(List<Node> nodes, List<Edge> edges) {
+    public AntGraph(List<AntNode> nodes, List<AntEdge> edges) {
         if (nodes == null) {
             this.nodes = new ArrayList<>();
         } else {
@@ -43,12 +43,12 @@ public class Graph {
         }
     }
 
-    public List<Node> getNodes() {
+    public List<AntNode> getNodes() {
         return nodes;
     }
 
-    public Node getNode(String id) {
-        for (Node n : nodes) {            
+    public AntNode getNode(String id) {
+        for (AntNode n : nodes) {            
             if (n.getId().contains(id)) {                
                 return n;
             }
@@ -56,8 +56,8 @@ public class Graph {
         return null;
     }
 
-    public boolean contains(Node node) {
-        for (Node n : nodes) {
+    public boolean contains(AntNode node) {
+        for (AntNode n : nodes) {
             if (n.getId().equals(node.getId())) {
                 return true;
             }
@@ -65,27 +65,27 @@ public class Graph {
         return false;
     }
 
-    public List<Edge> getEdges() {
+    public List<AntEdge> getEdges() {
         return edges;
     }
 
-    public void addNode2(Node node) {
+    public void addNode2(AntNode node) {
         if (!IsInNodes(node)) {
             this.nodes.add(node);
         }
     }
 
-    public void addNode(Node node) {
+    public void addNode(AntNode node) {
         this.nodes.add(node);
     }
 
-    public void addEdge2(Edge edge) {
+    public void addEdge2(AntEdge edge) {
         if (!isInEdges(edge)) {
             this.edges.add(edge);
         }
     }
 
-    public void addEdge(Edge edge) {
+    public void addEdge(AntEdge edge) {
         this.edges.add(edge);
     }  
 
@@ -101,42 +101,42 @@ public class Graph {
         return this.nodes.isEmpty();
     }
 
-    public Node getLastNode() {
+    public AntNode getLastNode() {
         return this.nodes.get(this.nodes.size() - 1);
     }
 
     @Override
     public String toString() {
         String str = "";
-        for (Node n : this.nodes) {
+        for (AntNode n : this.nodes) {
             str = str + n.getId().split(" - ")[0] + " - ";
         }
         return str;
     }
 
-    public void addGraph(Graph g) {
+    public void addGraph(AntGraph g) {
         if (this == g) {
             return;
         }
-        for (Node n : g.getNodes()) {
+        for (AntNode n : g.getNodes()) {
             if (n.getId() != null) {
                 if (!this.IsInNodes(n)) {
                     this.nodes.add(n);
                 }
             }
         }
-        for (Edge e : g.getEdges()) {
-            Node source = e.getSource();
+        for (AntEdge e : g.getEdges()) {
+            AntNode source = e.getSource();
             if (source != null) {
                 // System.out.println("source : "+ source.getId());
-                Node newSource = this.getNode(source.getId().split(" - ")[0]);
+                AntNode newSource = this.getNode(source.getId().split(" - ")[0]);
                 if (newSource != null) {
                     e.setSource(newSource);
                 }
-                Node destination = e.getDestination();
+                AntNode destination = e.getDestination();
                 // System.out.println("destination : "+ destination.getId());
                 if (destination.getId() != null) {
-                    Node newDestination = this.getNode(destination.getId().split(" - ")[0]);
+                    AntNode newDestination = this.getNode(destination.getId().split(" - ")[0]);
                     if (newDestination != null) {
                         e.setDestination(newDestination);
                     }
@@ -150,15 +150,15 @@ public class Graph {
     }
 
     @Override
-    public Graph clone() {
-        Graph g = new Graph(null, null);
-        for (Node n : this.nodes) {
+    public AntGraph clone() {
+        AntGraph g = new AntGraph(null, null);
+        for (AntNode n : this.nodes) {
             g.addNode(n.clone());
         }
-        for (Edge e : this.edges) {
-            Edge edge = e.clone();
-            Node source = g.getNode(edge.getSource().getId());
-            Node destination = g.getNode(edge.getDestination().getId());
+        for (AntEdge e : this.edges) {
+            AntEdge edge = e.clone();
+            AntNode source = g.getNode(edge.getSource().getId());
+            AntNode destination = g.getNode(edge.getDestination().getId());
             edge.setSource(source);
             edge.setDestination(destination);
             g.addEdge(edge);
@@ -167,8 +167,8 @@ public class Graph {
         return g;
     }
 
-    public boolean IsInNodes(Node node) {
-        for (Node n : this.nodes) {
+    public boolean IsInNodes(AntNode node) {
+        for (AntNode n : this.nodes) {
             if (n.getId().split(" - ")[0].split(" : ")[0].equals(node.getId().split(" - ")[0].split(" : ")[0])) {
                 return true;
             }
@@ -177,7 +177,7 @@ public class Graph {
     }
 
     public boolean IsInNodes(String node) {
-        for (Node n : this.nodes) {
+        for (AntNode n : this.nodes) {
             if (n.getId().equals(node)) {
                 return true;
             }
@@ -186,8 +186,8 @@ public class Graph {
     }
 
     public boolean IsInSource(String node) {
-        for (Edge e : this.edges) {
-            Node n = e.getSource();
+        for (AntEdge e : this.edges) {
+            AntNode n = e.getSource();
             if (n == null) {
                 continue;
             }
@@ -198,8 +198,8 @@ public class Graph {
         return false;
     }
 
-    public boolean isInEdges(Edge edge) {
-        for (Edge thisEdge : this.edges) {
+    public boolean isInEdges(AntEdge edge) {
+        for (AntEdge thisEdge : this.edges) {
             String source = edge.getSource().getId().split(" - ")[0];
             String destination = edge.getDestination().getId().split(" - ")[0];
             String thisSource = thisEdge.getSource().getId().split(" - ")[0];
@@ -211,9 +211,9 @@ public class Graph {
         return false;
     }
 
-    public List<Edge> getEdges(String n, boolean source) {
-        List<Edge> edgesN = new ArrayList<>();
-        for (Edge e : this.edges) {
+    public List<AntEdge> getEdges(String n, boolean source) {
+        List<AntEdge> edgesN = new ArrayList<>();
+        for (AntEdge e : this.edges) {
             if (source) {
                 if (e.getSource().getId().contains(n)) {
                     edgesN.add(e);
@@ -227,9 +227,9 @@ public class Graph {
         return edgesN;
     }
 
-    public List<Node> getConnectedAsSource(Node n) {
-        List<Node> connectedNodes = new ArrayList<>();
-        for (Edge e : edges) {
+    public List<AntNode> getConnectedAsSource(AntNode n) {
+        List<AntNode> connectedNodes = new ArrayList<>();
+        for (AntEdge e : edges) {
             if (e.getSource() == n) {
                 connectedNodes.add(n);
             }
@@ -237,9 +237,9 @@ public class Graph {
         return connectedNodes;
     }
 
-    public List<Node> getConnectedAsDestination(Node n) {
-        List<Node> connectedNodes = new ArrayList<>();
-        for (Edge e : edges) {
+    public List<AntNode> getConnectedAsDestination(AntNode n) {
+        List<AntNode> connectedNodes = new ArrayList<>();
+        for (AntEdge e : edges) {
             if (e.getDestination() == n) {
                 connectedNodes.add(n);
             }
@@ -250,13 +250,13 @@ public class Graph {
     public List<String> getDeadEnds() {
         List<String> deadEnds = new ArrayList<>();
 
-        for (Edge e : edges) {
+        for (AntEdge e : edges) {
             boolean isSource = false;
-            Node destination = e.getDestination();
+            AntNode destination = e.getDestination();
             if (destination.getId().contains("extracellular") || destination.getId().contains("boundary")) {
                 continue;
             }
-            for (Edge e2 : edges) {
+            for (AntEdge e2 : edges) {
                 if (e2.getSource() != null && e2.getSource().getId().split(" - ")[0].equals(destination.getId().split(" - ")[0])) {
                     isSource = true;
                 }
@@ -267,14 +267,14 @@ public class Graph {
             }
         }
         
-        for (Edge e : edges) {
+        for (AntEdge e : edges) {
             boolean isSource = false;
-            Node destination = e.getSource();
+            AntNode destination = e.getSource();
             if (destination == null) continue;
             if (destination.getId().contains("extracellular") || destination.getId().contains("boundary")) {
                 continue;
             }
-            for (Edge e2 : edges) {
+            for (AntEdge e2 : edges) {
                 if (e2.getDestination() != null && e2.getDestination().getId().split(" - ")[0].equals(destination.getId().split(" - ")[0])) {
                     isSource = true;
                 }
@@ -288,23 +288,23 @@ public class Graph {
     }
 
     public void removeNode(String node) {
-        List<Node> toBeRemove = new ArrayList<>();
-        List<Edge> toBeRemoveEdge = new ArrayList<>();
+        List<AntNode> toBeRemove = new ArrayList<>();
+        List<AntEdge> toBeRemoveEdge = new ArrayList<>();
 
-        for (Node n : this.nodes) {
+        for (AntNode n : this.nodes) {
             if (n.getId().contains(node)) {
                 toBeRemove.add(n);
             }
         }
-        for (Node r : toBeRemove) {
+        for (AntNode r : toBeRemove) {
             this.nodes.remove(r);
-            for (Edge e : this.edges) {
+            for (AntEdge e : this.edges) {
                 if (e.getSource() == r || e.getDestination() == r) {
                     toBeRemoveEdge.add(e);
                 }
             }
         }
-        for(Edge e : toBeRemoveEdge){
+        for(AntEdge e : toBeRemoveEdge){
             this.edges.remove(e);
         }
     }

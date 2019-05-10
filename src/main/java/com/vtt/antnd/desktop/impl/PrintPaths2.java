@@ -13,7 +13,6 @@ import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
 import com.vtt.antnd.util.GUIUtils;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -23,7 +22,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -45,6 +43,7 @@ import javax.swing.JTextArea;
 import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.*;
 import org.graphstream.ui.geom.Point3;
+import org.graphstream.ui.graphicGraph.GraphicNode;
 import org.graphstream.ui.swingViewer.ViewPanel;
 import org.graphstream.ui.view.Camera;
 import org.graphstream.ui.view.View;
@@ -67,9 +66,8 @@ public class PrintPaths2 implements KeyListener {
     // private TransFrame transFrame = null;
     private final List<String> selectedNode;
     private AntGraph antGraph;
-    private Dataset dataset;
+    private final Dataset dataset;
     Map<String, Color> clusters;
-    private boolean showInfo = false;
     private JPopupMenu popupMenu;
     JPanel topPanel;
     JColorChooser tcc;
@@ -102,54 +100,46 @@ public class PrintPaths2 implements KeyListener {
         List<AntEdge> edges = graph.getEdges();
         colors = new HashMap<>();
 
-        for (AntNode node : nodes) {
-            if (node != null) {
-                String name = node.getCompleteId();
-                String n = name.split(" - ")[0];
-                String r = name.split(" : ")[0];
-                g.addNode(name);
-                if (node.getColor() != null) {
-                    colors.put(name, node.getColor());
-                }
-                Node gNode = g.getNode(name);
-                if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
-                    gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
-                    gNode.addAttribute("ui.label", r);
-                } else if (this.cofactors.contains(r)) {
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                    gNode.addAttribute("ui.label", n);
+        nodes.stream().filter((node) -> (node != null)).forEachOrdered((node) -> {
+            String name = node.getCompleteId();
+            String n = name.split(" - ")[0];
+            String r = name.split(" : ")[0];
+            g.addNode(name);
+            if (node.getColor() != null) {
+                colors.put(name, node.getColor());
+            }
+            Node gNode = g.getNode(name);
+            if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
+                gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
+                gNode.addAttribute("ui.label", r);
+            } else if (this.cofactors.contains(r)) {
+                gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
+                gNode.addAttribute("ui.label", n);
+            } else {
+                gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
+                gNode.addAttribute("ui.label", n);
+
+            }
+        });
+        edges.stream().filter((edge) -> (edge != null)).forEachOrdered((edge) -> {
+            try {
+                if (edge.getDirection()) {
+                    g.addEdge(edge.getId(), edge.getSource().getCompleteId(), edge.getDestination().getCompleteId(), Boolean.TRUE);
                 } else {
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
-                    gNode.addAttribute("ui.label", n);
-
+                    g.addEdge(edge.getId(), edge.getSource().getCompleteId(), edge.getDestination().getCompleteId(), Boolean.FALSE);
                 }
-
+            } catch (Exception e) {
             }
-        }
-        for (AntEdge edge : edges) {
-            if (edge != null) {
-                try {
-                    if (edge.getDirection()) {
-                        g.addEdge(edge.getId(), edge.getSource().getCompleteId(), edge.getDestination().getCompleteId(), Boolean.TRUE);
-                    } else {
-                        g.addEdge(edge.getId(), edge.getSource().getCompleteId(), edge.getDestination().getCompleteId(), Boolean.FALSE);
-                    }
-                } catch (Exception e) {
-                }
-            }
-        }
+        });
         viewer = g.display();
-       // viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.HIDE_ONLY);
+        // viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.HIDE_ONLY);
         viewer.enableAutoLayout();
 
         viewPanel = viewer.addDefaultView(false);
 
         // Zoom
-        viewPanel.addMouseWheelListener(new MouseWheelListener() {
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent mwe) {
-                zoomGraphMouseWheelMoved(mwe, viewPanel);
-            }
+        viewPanel.addMouseWheelListener((MouseWheelEvent mwe) -> {
+            zoomGraphMouseWheelMoved(mwe, viewPanel);
         });
 
         ViewerPipe fromViewer = viewer.newViewerPipe();
@@ -166,31 +156,27 @@ public class PrintPaths2 implements KeyListener {
         topPanel = new JPanel();
 
         final JButton saveButton = new JButton("Save Graph");
-        saveButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser fc = new JFileChooser();
-                int returnVal = fc.showSaveDialog(topPanel);
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    File file = fc.getSelectedFile();
-                    saveImage(file.getAbsolutePath());
-                }
+        saveButton.addActionListener((ActionEvent e) -> {
+            JFileChooser fc = new JFileChooser();
+            int returnVal = fc.showSaveDialog(topPanel);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = fc.getSelectedFile();
+                saveImage(file.getAbsolutePath());
             }
         });
 
         this.area = new JTextArea();
-        
+
         JScrollPane sc = new JScrollPane(this.area);
         sc.setAutoscrolls(true);
-        sc.setPreferredSize(new Dimension(300, 170));   
+        sc.setPreferredSize(new Dimension(300, 170));
         topPanel.add(sc);
-        
+
         topPanel.add(saveButton);
         topPanel.setPreferredSize(new Dimension(650, 200));
         topPanel.setBackground(Color.WHITE);
         viewPanel.add(topPanel);
-        viewPanel.setPreferredSize(new Dimension(700,700));
+        viewPanel.setPreferredSize(new Dimension(700, 700));
         viewPanel.setVisible(true);
 
         return viewPanel;
@@ -209,55 +195,119 @@ public class PrintPaths2 implements KeyListener {
                 path = path + ".gml";
             }
             writer = new PrintWriter(path, "UTF-8");
-            writer.println("Creator \"AntND\"");
-            writer.println("Version	1.0");
-            writer.println("graph\t[");
-            Map<AntNode, String> indexes = new HashMap<>();
-            List<AntNode> nodes = antGraph.getNodes();
-            int i = 1;
-            for (AntNode node : nodes) {
+            writer.println("Creator \"yFiles\"");
+            writer.println("Version	\"2.16\"");
+            writer.println("graph\n[");
+            writer.println("\thierarchic\t1");
+            writer.println("\tlabel\t\"\"");
+            writer.println("\tdirected\t1");
+            Map<Node, String> indexes = new HashMap<>();
+            
+            int i = 0;
+            for (Node node : this.g.getEachNode()) {
                 indexes.put(node, String.valueOf(i));
-                writer.println("\tnode\t[");
-                writer.println("\t\troot_index\t" + i);
+                writer.println("\tnode\n\t[");
+                //writer.println("\t\troot_index\t" + i);
                 writer.println("\t\tid\t" + i++);
-                writer.println("\t\tlabel\t\"" + node.getCompleteId() + "\"");
-                writer.println("\t\tgraphics\t[");
-                if (node.getPosition() != null) {
-                    writer.println("\t\t\tx\t" + node.getPosition().getX());
-                    writer.println("\t\t\ty\t" + node.getPosition().getY());
+                writer.println("\t\tlabel\t\"" + node.getId() + "\"");
+                writer.println("\t\tgraphics\n\t\t[");
+
+                //Position
+                String gnodestr = isThereCofactor(node.getId());
+                GraphicNode n = viewer.getGraphicGraph().getNode(gnodestr);
+                double x = n.getX();
+                double y = n.getY();
+                Point3 pixels = viewer.getDefaultView().getCamera().transformGuToPx(x, y, 0);
+
+                writer.println("\t\t\tx\t" + pixels.x);
+                writer.println("\t\t\ty\t" + pixels.y);
+                String name = node.getId();
+                if (name.contains(" : ")) {
+                    name = name.split(" : ")[0];
                 }
-                writer.println("\t\t\tw\t35.0");
-                writer.println("\t\t\th\t35.0");
-                if (node.getColor() != null) {
-                    String hex = "#" + Integer.toHexString(node.getColor().getRGB()).substring(2);
-                    writer.println("\t\t\tfill\t\"" + hex + "\"");
+                //Nodes
+                if (this.m.getSpecies(name) != null) {
+                    if (this.cofactors.contains(name)) {
+                        writeSpecie(writer, 15,node.getAttribute("ui.label"));
+                    } else {
+                        writeSpecie(writer, 35,node.getAttribute("ui.label"));
+                    }
+                } else {
+                    writeReaction(writer, node.getAttribute("ui.label"));
                 }
-                writer.println("\t\t\ttype\t\"ellipse\"");
-                writer.println("\t\t\toutline\t\"#3333ff\"");
-                writer.println("\t\t\toutline_width\t5.0");
+
                 writer.println("\t\t]");
 
                 writer.println("\t]");
+
             }
 
-            List<AntEdge> edges = antGraph.getEdges();
+            
 
-            for (AntEdge edge : edges) {
-                writer.println("\tedge\t[");
-                writer.println("\t\troot_index\t" + i++);
-                writer.println("\t\ttarget\t" + indexes.get(edge.getDestination()));
-                writer.println("\t\tsource\t" + indexes.get(edge.getSource()));
+            for (Edge edge : g.getEachEdge()) {
+                
+                writer.println("\tedge\n\t[");
+                // writer.println("\t\troot_index\t" + i++);
+                writer.println("\t\ttarget\t" + indexes.get(edge.getTargetNode()));
+                writer.println("\t\tsource\t" + indexes.get(edge.getSourceNode()));
+                writer.println("\t\tgraphics\n\t\t[");
+                writer.println("\t\t\tfill\t\"#000000\"");
+                if(edge.isDirected()){
+                    writer.println("\t\t\ttargetArrow\t\"standard\"");
+                }
+                writer.println("\t\t]");
                 writer.println("\t]");
             }
             writer.println("]");
 
-            writer.println("Title\t\"" + this.m.getId() + "\"");
             writer.close();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(PrintPaths.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (UnsupportedEncodingException ex) {
+        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
             Logger.getLogger(PrintPaths.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private void writeSpecie(PrintWriter writer, double size, String label) {
+        writer.println("\t\t\tw\t" + size);
+        writer.println("\t\t\th\t" + size);
+        writer.println("\t\t\ttype\t\"ellipse\"");
+        if (size == 35.0) {
+            writer.println("\t\t\tfill\t\"#FF9900\"");
+            writer.println("\t\t\toutline\t\"#FF9900\"");
+        } else {
+            writer.println("\t\t\tfill\t\"#ffcc99\"");
+            writer.println("\t\t\toutline\t\"#ffcc99\"");
+
+        }
+        writer.println("\t\t]");
+
+        if (size == 35.0) {
+            writer.println("\t\tLabelGraphics\n\t\t[");
+            writer.println("\t\t\ttext\t\"" + label + "\"");
+            writer.println("\t\t\tfontSize\t15");
+            writer.println("\t\t\tfontName\t\"Dialog\"");
+            writer.println("\t\t\tanchor\t\"c\"");
+        } else {
+            writer.println("\t\tLabelGraphics\n\t\t[");
+            writer.println("\t\t\ttext\t\"" + label + "\"");
+            writer.println("\t\t\tfontSize\t9");
+            writer.println("\t\t\tfontName\t\"Dialog\"");
+            writer.println("\t\t\tanchor\t\"c\"");
+        }
+
+    }
+
+    private void writeReaction(PrintWriter writer, String id) {
+        writer.println("\t\t\tw\t55.0");
+        writer.println("\t\t\th\t35.0");
+        writer.println("\t\t\ttype\t\"rectangle3d\"");
+        writer.println("\t\t\tfill\t\"#2E8B57\"");
+        writer.println("\t\t\toutline\t\"#2E8B57\"");
+        writer.println("\t\t]");
+        writer.println("\t\tLabelGraphics\n\t\t[");
+        writer.println("\t\t\ttext\t\"" + id + "\"");
+        writer.println("\t\t\tfontSize\t12");
+        writer.println("\t\t\tfontName\t\"Dialog\"");
+
     }
 
     public class ViewerEventListener extends DefaultMouseManager implements ViewerListener, ActionListener {
@@ -289,85 +339,102 @@ public class PrintPaths2 implements KeyListener {
 
         @Override
         public void mouseEntered(MouseEvent e) {
-            previousPoint = point3(e.getPoint());
+            try {
+                previousPoint = point3(e.getPoint());
+            } catch (NullPointerException n) {
+            }
         }
 
         public String data(String name) {
-                Dataset dInit = NDCore.getDesktop().getSelectedDataFiles()[0];
-                StringBuffer info;
-                if (name.contains(" : ")) {
-                    name = name.split(" : ")[0];
-                }
-                Model m = dInit.getDocument().getModel();
-                Reaction reaction = m.getReaction(name);
-                info = new StringBuffer();
-                if (reaction != null) {
-                    info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(dInit.getLowerBound(reaction.getId())).append(" up: ").append(dInit.getUpperBound(reaction.getId())).append(":\n");
-                 
-                    info.append("Reactants: \n");
-                    //ListOf spref = reaction.getListOfReactants();
-                    //for (int i = 0; i < spref.size(); i++) {
-                    //    SpeciesReference sr = (SpeciesReference) spref.get(i);
-                    for (SpeciesReference sr : reaction.getListOfReactants()) {
-                        Species sp = m.getSpecies(sr.getSpecies());
-                        info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
-                    }
-                    info.append("Products: \n");
-                    // spref = reaction.getListOfProducts();
-                    //for (int i = 0; i < spref.size(); i++) {
-                    for (SpeciesReference sr : reaction.getListOfProducts()) {
-                        //SpeciesReference sr = (SpeciesReference) spref.get(i);
-                        Species sp = m.getSpecies(sr.getSpecies());
-                        info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
-                    }
-                } else {
-                    Species sp = m.getSpecies(name);
-                    if (sp != null) {
-                        info.append(sp.getId()).append(" - ").append(sp.getName());
-                        info.append("\n\nPresent in: \n");
-                        int count = 0;
-                        for (Reaction r : m.getListOfReactions()) {
-                            if (r.getReactantForSpecies(name) != null || r.getProductForSpecies(name) != null) {
-                                info.append(r.getId()).append(", ");
-                                count++;
-                                if (count == 6) {
-                                    count = 0;
-                                    info.append("\n");
-                                }
+            Dataset dInit = NDCore.getDesktop().getSelectedDataFiles()[0];
+            StringBuffer info;
+            if (name.contains(" : ")) {
+                name = name.split(" : ")[0];
+            }
+            Model m = dInit.getDocument().getModel();
+            Reaction reaction = m.getReaction(name);
+            info = new StringBuffer();
+            if (reaction != null) {
+                info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(dInit.getLowerBound(reaction.getId())).append(" up: ").append(dInit.getUpperBound(reaction.getId())).append(":\n");
+
+                info.append("Reactants: \n");
+                reaction.getListOfReactants().forEach((sr) -> {
+                    Species sp = m.getSpecies(sr.getSpecies());
+                    info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
+                });
+                info.append("Products: \n");
+                reaction.getListOfProducts().forEach((sr) -> {
+                    Species sp = m.getSpecies(sr.getSpecies());
+                    info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
+                });
+            } else {
+                Species sp = m.getSpecies(name);
+                if (sp != null) {
+                    info.append(sp.getId()).append(" - ").append(sp.getName());
+                    info.append("\n\nPresent in: \n");
+                    int count = 0;
+                    for (Reaction r : m.getListOfReactions()) {
+                        if (r.getReactantForSpecies(name) != null || r.getProductForSpecies(name) != null) {
+                            info.append(r.getId()).append(", ");
+                            count++;
+                            if (count == 6) {
+                                count = 0;
+                                info.append("\n");
                             }
                         }
                     }
                 }
-                return info.toString();
             }
-        
-        
+            return info.toString();
+        }
+
         @Override
         public void mousePressed(MouseEvent e) {
-            /*boolean isShiftPressed = e.isShiftDown();
-            if (!isShiftPressed) {
-                curElement = view.findNodeOrSpriteAt(e.getX(), e.getY());
-                if (curElement != null) {
-                    mouseButtonPressOnElement(curElement, e);
-                }
-
-                previousPoint = point3(e.getPoint());
-            }*/
-
             curElement = view.findNodeOrSpriteAt(e.getX(), e.getY());
 
             if (curElement != null) {
                 mouseButtonPressOnElement(curElement, e);
                 Node node = displayedGraph.getNode(curElement.getId());
-                if (node != null) {                   
+                if (node != null) {
                     String sourceLine = node.toString();
                     area.setText(data(sourceLine));
                     selectedNode.add(sourceLine);
                     node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 15px;text-alignment: center;");
-                    System.out.println(sourceLine);
 
+                    if (e.isPopupTrigger()) {
+                        popupMenu = new JPopupMenu();
+                        Model mInit;
+                        try {
+                            mInit = NDCore.getDesktop().getSelectedDataFiles()[0].getDocument().getModel();
+                        } catch (Exception ex2) {
+                            return;
+                        }
+                        String spID = node.toString();
+
+                        if (spID.contains(" : ")) {
+                            spID = spID.split(" : ")[0];
+                        }
+                        Species sp = mInit.getSpecies(spID);
+                        if (sp == null) {
+                            return;
+                        }
+                        GUIUtils.addMenuItem(popupMenu, "All", this, "All");
+                        int i = 0;
+                        for (Reaction r : mInit.getListOfReactions()) {
+                            if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
+                                String reaction = r.getId() + " - " + r.getName();
+                                GUIUtils.addMenuItem(popupMenu, reaction, this, reaction);
+                                i++;
+                            }
+                            if (i > 35) {
+                                GUIUtils.addMenuItem(popupMenu, "...", this, "...");
+                                break;
+                            }
+                        }
+
+                        popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                    }
                 }
-                System.out.println(node.toString());
 
             } else {
                 x1 = e.getX();
@@ -393,58 +460,10 @@ public class PrintPaths2 implements KeyListener {
                 }
             }
 
-            if (e.isPopupTrigger()) {
-                popupMenu = new JPopupMenu();
-                Model mInit = null;
-                try {
-                    mInit = NDCore.getDesktop().getSelectedDataFiles()[0].getDocument().getModel();
-                } catch (Exception ex2) {
-                    return;
-                }
-                for (Node node : graph) {
-                    if (node.hasAttribute("ui.selected")) {
-                        String spID = (String) node.getId();
-
-                        if (spID.contains(" : ")) {
-                            spID = spID.split(" : ")[0];
-                        }
-                        Species sp = mInit.getSpecies(spID);
-                        if (sp == null) {
-                            return;
-                        }
-                        GUIUtils.addMenuItem(popupMenu, "All", this, "All");
-                        int i = 0;
-                        for (Reaction r : mInit.getListOfReactions()) {
-                            if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
-                                String reaction = r.getId() + " - " + r.getName();
-                                GUIUtils.addMenuItem(popupMenu, reaction, this, reaction);
-                                i++;
-                            }
-                            if (i > 35) {
-                                GUIUtils.addMenuItem(popupMenu, "...", this, "...");
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                popupMenu.show(e.getComponent(), e.getX(), e.getY());
-
-            }
-
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
-
-            /* boolean isShiftPressed = e.isShiftDown();
-            if (!isShiftPressed) {
-                if (curElement != null) {
-                    mouseButtonReleaseOffElement(curElement, e);
-                    curElement = null;
-                }
-                return;
-            }*/
             if (curElement != null) {
                 mouseButtonReleaseOffElement(curElement, e);
                 curElement = null;
@@ -506,9 +525,6 @@ public class PrintPaths2 implements KeyListener {
             return camera.transformPxToGu(point.x, point.y);
         }
 
-        
-        
-        
         @Override
         public void buttonPushed(String id) {
 
@@ -518,16 +534,11 @@ public class PrintPaths2 implements KeyListener {
                     String sourceLine = node.toString();
                     selectedNode.add(sourceLine);
                     node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 15px;text-alignment: center;");
-                    System.out.println(sourceLine);
-
                 }
-                System.out.println(node.toString());
 
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (NumberFormatException ex) {
                 System.out.println("OKAY! Something went wrong."
-                        + "\nFeel free to report this exception."
-                        + "\nContinue using the command menu... ");
+                        + "\nFeel free to report this exception.");
             }
 
         }
@@ -548,7 +559,6 @@ public class PrintPaths2 implements KeyListener {
             } else {
                 if (!selectedNode.isEmpty()) {
                     String reaction = command.split(" - ")[0];
-                    System.out.println("command: " + reaction);
                     showReactions(selectedNode.get(0), reaction);
                 }
             }
@@ -577,7 +587,7 @@ public class PrintPaths2 implements KeyListener {
     @Override
     public void keyTyped(KeyEvent e) {
         if (e.getKeyChar() == '\u0008' || e.getKeyChar() == '\u007F') {
-            for (String nodeId : this.selectedNode) {
+            this.selectedNode.forEach((nodeId) -> {
                 try {
                     Node node = g.getNode(nodeId);
                     g.removeNode(node);
@@ -593,8 +603,7 @@ public class PrintPaths2 implements KeyListener {
                     this.antGraph.removeNode(name);
                 } catch (Exception ex) {
                 }
-
-            }
+            });
         }
         if (e.getKeyChar() == 's') {
             this.g.addAttribute("ui.screenshot", "/home/scsandra/Downloads/screenshot.png");
@@ -673,18 +682,26 @@ public class PrintPaths2 implements KeyListener {
         return null;
     }
 
+    private String isThereCofactor(String node) {
+        for (Node v : this.g.getEachNode()) {
+            if (v.getId().contains(node)) {
+                return v.getId();
+            }
+        }
+        return null;
+    }
+
     private void showReactions(String initialStringNode, String reaction) {
 
         // Gets the selected model. It is the source model for the reactions
-        Dataset dInit =NDCore.getDesktop().getSelectedDataFiles()[0];
-        Model mInit =dInit.getDocument().getModel();
-        System.out.println(initialStringNode);
+        Dataset dInit = NDCore.getDesktop().getSelectedDataFiles()[0];
+        Model mInit = dInit.getDocument().getModel();
         String spID = initialStringNode;
 
         if (initialStringNode.contains(" : ")) {
             spID = initialStringNode.split(" : ")[0];
         }
-        System.out.println(spID);
+
         AntNode initNode = this.antGraph.getNode(spID);
 
         Species sp = mInit.getSpecies(spID);
@@ -701,9 +718,9 @@ public class PrintPaths2 implements KeyListener {
                 double lb = dInit.getLowerBound(r.getId());
                 double ub = dInit.getUpperBound(r.getId());
                 Double flux = dInit.getFlux(r.getId());
-                
+
                 // adds the new reaction node with and edge from the extended node
-                String reactionName = null;
+                String reactionName;
                 if (flux != null) {
                     DecimalFormat df = new DecimalFormat("#.####");
                     reactionName = r.getId() + " : " + df.format(flux) + " - " + uniqueId.nextId();
@@ -727,7 +744,7 @@ public class PrintPaths2 implements KeyListener {
                     // adds the new reaction to the visualization graph
                     Node rNode = g.addNode(reactionName);
                     rNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
-                    rNode.addAttribute("ui.label", r);
+                    rNode.addAttribute("ui.label", reactionName);
 
                     // Creates the node for the ANT graph
                     AntNode reactionNode = new AntNode(reactionName);
@@ -743,8 +760,12 @@ public class PrintPaths2 implements KeyListener {
                     for (SpeciesReference sr : r.getListOfReactants()) {
                         Species sps = mInit.getSpecies(sr.getSpecies());
                         String spName = sps.getId();
-                        String nodeReactant = this.isThere(spName);
-
+                        String nodeReactant;
+                        if (cofactors.contains(spName)) {
+                            nodeReactant = this.isThereCofactor(spName);
+                        } else {
+                            nodeReactant = this.isThere(spName);
+                        }
                         if (nodeReactant == null) {
                             if (!spName.equals(spID)) {
                                 String vName = spName + " : " + sps.getName() + " - " + uniqueId.nextId();
@@ -753,10 +774,10 @@ public class PrintPaths2 implements KeyListener {
                                 Node spNode = g.addNode(vName);
                                 if (cofactors.contains(spName)) {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", sps.getName());
+                                    spNode.addAttribute("ui.label", vName);
                                 } else {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", sps.getName());
+                                    spNode.addAttribute("ui.label", vName);
                                 }
                                 //adds the node to the graph
                                 AntNode n = new AntNode(vName);
@@ -770,11 +791,13 @@ public class PrintPaths2 implements KeyListener {
                                 }
                             } else {
                                 if (lb == 0) {
-                                    g.addEdge(initSPName, initialStringNode, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(sp.getId(), initNode, reactionNode, direction));
+                                    String name = initSPName + uniqueId.nextId();
+                                    g.addEdge(name, initialStringNode, reactionName, eType);
+                                    antGraph.addEdge(new AntEdge(name, initNode, reactionNode, direction));
                                 } else {
-                                    g.addEdge(initSPName, reactionName, initialStringNode, eType);
-                                    antGraph.addEdge(new AntEdge(sp.getId(), reactionNode, initNode, direction));
+                                    String name = initSPName + uniqueId.nextId();
+                                    g.addEdge(name, reactionName, initialStringNode, eType);
+                                    antGraph.addEdge(new AntEdge(name, reactionNode, initNode, direction));
                                 }
                             }
                         } else {
@@ -806,10 +829,10 @@ public class PrintPaths2 implements KeyListener {
                                 Node spNode = g.addNode(vName);
                                 if (cofactors.contains(spId)) {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", sps.getName());
+                                    spNode.addAttribute("ui.label", vName);
                                 } else {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", sps.getName());
+                                    spNode.addAttribute("ui.label", vName);
                                 }
                                 //adds the node to the graph
                                 AntNode n = new AntNode(vName);
@@ -823,12 +846,14 @@ public class PrintPaths2 implements KeyListener {
                                 }
                             } else {
                                 if (lb == 0) {
-                                    g.addEdge(initSPName, initialStringNode, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(sp.getId(), initNode, reactionNode, direction));
+                                    String eName = spId + " - " + uniqueId.nextId();
+                                    g.addEdge(eName, initialStringNode, reactionName, eType);
+                                    antGraph.addEdge(new AntEdge(eName, initNode, reactionNode, direction));
 
                                 } else {
-                                    g.addEdge(initSPName, reactionName, initialStringNode, eType);
-                                    antGraph.addEdge(new AntEdge(sp.getId(), reactionNode, initNode, direction));
+                                    String eName = spId + " - " + uniqueId.nextId();
+                                    g.addEdge(eName, reactionName, initialStringNode, eType);
+                                    antGraph.addEdge(new AntEdge(eName, reactionNode, initNode, direction));
                                 }
                             }
                         } else {
@@ -854,9 +879,8 @@ public class PrintPaths2 implements KeyListener {
         Model mInit = datasetInit.getDocument().getModel();
 
         Reaction r = new Reaction(reaction);
-        r.setId(reaction.getId());
-        r.setName(reaction.getName());
-        System.out.println("Adding new reaction: " + reaction.getId());
+        //r.setId(reaction.getId());
+        //r.setName(reaction.getName());
 
         reaction.getListOfReactants().forEach((sp) -> {
             SpeciesReference spref = r.createReactant();
@@ -880,11 +904,13 @@ public class PrintPaths2 implements KeyListener {
                 spref.setSpecies(sp.getSpecies());
             }
         });
+        
+
+       // r.appendNotes(reaction.getNotes());
+
+        m.addReaction(reaction.clone());
         this.dataset.setLowerBound(r.getId(), datasetInit.getLowerBound(r.getId()));
         this.dataset.setUpperBound(r.getId(), datasetInit.getUpperBound(r.getId()));
-        r.appendNotes(reaction.getNotes());
-
-        m.addReaction(r);
     }
 
 }

@@ -21,9 +21,9 @@ import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import java.util.ArrayList;
@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JTextArea;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Parameter;
@@ -54,13 +53,15 @@ public class SimpleBasicDataset implements Dataset {
     private int ID;
     private SBMLDocument document;
     private final JTextArea textArea;
-    private List<Node> nodes;
-    private List<Edge> edges;
+    private List<AntNode> nodes;
+    private List<AntEdge> edges;
     private List<String> sources;
-    private Graph graph;
+    private AntGraph graph;
     private String biomassId;
     private boolean isCluster = false;
     private HashMap<String, ReactionFA> reactions;
+    private HashMap<String, Double> lb;
+    private HashMap<String, Double> ub;
     private HashMap<String, Double> fluxes;
     private HashMap<String, SpeciesFA> compounds;
     private List<String> cofactors;
@@ -83,6 +84,8 @@ public class SimpleBasicDataset implements Dataset {
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
         this.fluxes = new HashMap<>();
+        this.lb = new HashMap<>();
+        this.ub = new HashMap<>();
     }
 
     public SimpleBasicDataset() {
@@ -92,25 +95,27 @@ public class SimpleBasicDataset implements Dataset {
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
         this.fluxes = new HashMap<>();
+        this.lb = new HashMap<>();
+        this.ub = new HashMap<>();
     }
 
     @Override
-    public void setNodes(List<Node> nodes) {
+    public void setNodes(List<AntNode> nodes) {
         this.nodes = nodes;
     }
 
     @Override
-    public void setEdges(List<Edge> edges) {
+    public void setEdges(List<AntEdge> edges) {
         this.edges = edges;
     }
 
     @Override
-    public List<Node> getNodes() {
+    public List<AntNode> getNodes() {
         return this.nodes;
     }
 
     @Override
-    public List<Edge> getEdges() {
+    public List<AntEdge> getEdges() {
         return this.edges;
     }
 
@@ -141,76 +146,79 @@ public class SimpleBasicDataset implements Dataset {
     }
 
     @Override
-    public void setGraph(Graph graph) {
+    public void setGraph(AntGraph graph) {
         this.graph = graph;
     }
 
     @Override
-    public Graph getGraph() {
+    public AntGraph getGraph() {
 
         Model model = this.document.getModel();
         this.cofactors = NDCore.getCofactors();
-        List<Node> nodeList = new ArrayList<>();
-        List<Edge> edgeList = new ArrayList<>();
+        List<AntNode> nodeList = new ArrayList<>();
+        List<AntEdge> edgeList = new ArrayList<>();
 
-        Graph g = new Graph(nodeList, edgeList);
+        AntGraph g = new AntGraph(nodeList, edgeList);
 
- 
-            // For eac reaction in the model, a Node is created in the graph
-            for(Reaction r:model.getListOfReactions()){
-                //Node is created
-                Node reactionNode = new Node(r.getId(), r.getName());
-                this.setPosition(reactionNode);
+        // For eac reaction in the model, a Node is created in the graph
+        for (Reaction r : model.getListOfReactions()) {
 
-                g.addNode2(reactionNode);
-                int direction = this.getDirection(r);
-             
-                for(SpeciesReference spr : r.getListOfReactants()){
-                    spr.printSpeciesReference();                
-                    Species sp = spr.getSpeciesInstance();
-                  
-                    if (this.cofactors.contains(sp.getId())) {
-                        Node cof = new Node(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
-                        g.addNode(cof);
-                        g.addEdge(addEdge(cof, reactionNode, sp.getId(), direction));
-                    } else {
-                        Node spNode = g.getNode(sp.getId());
-                        if (spNode == null) {
-                            spNode = new Node(sp.getId(), sp.getName());
-                        }
-                        this.setPosition(spNode);
-                        g.addNode2(spNode);
-                        g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
-                    }
-                }
-                for(SpeciesReference spr : r.getListOfProducts()){              
-                    Species sp = spr.getSpeciesInstance();
-
-                    if (this.cofactors.contains(sp.getId())) {
-                        Node cof = new Node(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
-                        g.addNode(cof);
-                        g.addEdge(addEdge(reactionNode, cof, sp.getId(), direction));
-                    } else {
-                        Node spNode = g.getNode(sp.getId());
-                        if (spNode == null) {
-                            spNode = new Node(sp.getId(), sp.getName());
-                        }
-                        this.setPosition(spNode);
-                        g.addNode2(spNode);
-                        g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
-                    }
-                }
-
+            if (onlyCofactors(r)) {
+                continue;
             }
-       
+            //Node is created
+            AntNode reactionNode = new AntNode(r.getId(), r.getName());
+            this.setPosition(reactionNode);
+
+            g.addNode2(reactionNode);
+            int direction = this.getDirection(r);
+
+            for (SpeciesReference spr : r.getListOfReactants()) {
+                spr.printSpeciesReference();
+                Species sp = spr.getSpeciesInstance();
+
+                if (this.cofactors.contains(sp.getId())) {
+                    AntNode cof = new AntNode(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
+                    g.addNode(cof);
+                    g.addEdge(addEdge(cof, reactionNode, sp.getId(), direction));
+                } else {
+                    AntNode spNode = g.getNode(sp.getId());
+                    if (spNode == null) {
+                        spNode = new AntNode(sp.getId(), sp.getName());
+                    }
+                    this.setPosition(spNode);
+                    g.addNode2(spNode);
+                    g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
+                }
+            }
+            for (SpeciesReference spr : r.getListOfProducts()) {
+                Species sp = spr.getSpeciesInstance();
+
+                if (this.cofactors.contains(sp.getId())) {
+                    AntNode cof = new AntNode(sp.getId(), sp.getName() + " - " + uniqueId.nextId());
+                    g.addNode(cof);
+                    g.addEdge(addEdge(reactionNode, cof, sp.getId(), direction));
+                } else {
+                    AntNode spNode = g.getNode(sp.getId());
+                    if (spNode == null) {
+                        spNode = new AntNode(sp.getId(), sp.getName());
+                    }
+                    this.setPosition(spNode);
+                    g.addNode2(spNode);
+                    g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
+                }
+            }
+
+        }
+
         this.graph = g;
         System.out.println(g.getNumberOfNodes());
         return g;
     }
 
-    private void setPosition(Node node) {
+    private void setPosition(AntNode node) {
         if (this.graph != null) {
-            Node gNode = this.graph.getNode(node.getId());
+            AntNode gNode = this.graph.getNode(node.getId());
             if (gNode != null) {
                 node.setPosition(gNode.getPosition());
             } else {
@@ -221,39 +229,23 @@ public class SimpleBasicDataset implements Dataset {
 
     private int getDirection(Reaction r) {
         int direction = 2;
-        double lb,ub;
+        double lb, ub;
         Double flux = null;
-        if(this.fluxes.containsKey(r.getId())){
+        if (this.fluxes.containsKey(r.getId())) {
             flux = this.fluxes.get(r.getId());
         }
-        if (r.getKineticLaw() != null) {
-            KineticLaw law = r.getKineticLaw();
-            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-            lb = lbound.getValue();
-            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-            ub = ubound.getValue();            
-        } else {
-            FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");   
-            Parameter lbp = plugin.getLowerFluxBoundInstance();
-            Parameter ubp = plugin.getUpperFluxBoundInstance();
-            if(lbp != null){
-                lb = lbp.getValue();
-                ub = ubp.getValue();
-            }else{
-                lb = 0;
-                ub = 0;
-            }
-        }
+        lb = this.getLowerBound(r.getId());
+        ub = this.getUpperBound(r.getId());
 
         if (flux != null) {
-           //  System.out.println("flux not null?");
+            //  System.out.println("flux not null?");
             if (flux > 0.0) {
                 direction = 1;
             } else if (flux < 0.0) {
                 direction = 0;
             }
         } else {
-           // System.out.println(ub+lb);
+            // System.out.println(ub+lb);
             if (ub > 0 && lb < 0) {
                 direction = 2;
             } else if (ub > 0) {
@@ -266,19 +258,19 @@ public class SimpleBasicDataset implements Dataset {
         return direction;
     }
 
-    private Edge addEdge(Node node1, Node node2, String name, int direction) {
-        Edge e = null;
+    private AntEdge addEdge(AntNode node1, AntNode node2, String name, int direction) {
+        AntEdge e = null;
         switch (direction) {
             case 1:
-                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(true);
                 break;
             case 2:
-                e = new Edge(name + " - " + uniqueId.nextId(), node1, node2);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node1, node2);
                 e.setDirection(false);
                 break;
             case 0:
-                e = new Edge(name + " - " + uniqueId.nextId(), node2, node1);
+                e = new AntEdge(name + " - " + uniqueId.nextId(), node2, node1);
                 e.setDirection(true);
                 break;
             default:
@@ -306,17 +298,17 @@ public class SimpleBasicDataset implements Dataset {
     public String getPath() {
         return this.path;
     }
-    
+
     @Override
-    public void setFlux(String reaction, Double flux){
+    public void setFlux(String reaction, Double flux) {
         this.fluxes.put(reaction, flux);
     }
-    
+
     @Override
     public Double getFlux(String reaction) {
         return this.fluxes.get(reaction);
     }
-    
+
     @Override
     public void setPath(String path) {
         this.path = path;
@@ -365,6 +357,33 @@ public class SimpleBasicDataset implements Dataset {
     @Override
     public void setDocument(SBMLDocument document) {
         this.document = document;
+        Model model = this.document.getModel();
+        for (Reaction r : model.getListOfReactions()) {
+
+            if (r.getKineticLaw() != null) {
+                LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
+                if (lp == null) {
+                    lp = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
+                }
+                this.setLowerBound(r.getId(), lp.getValue());
+            } else {
+                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                Parameter lp = plugin.getLowerFluxBoundInstance();
+                this.setLowerBound(r.getId(), lp.getValue());
+            }
+
+            if (r.getKineticLaw() != null) {
+                LocalParameter lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
+                if (lp == null) {
+                    lp = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
+                }
+                this.setUpperBound(r.getId(), lp.getValue());
+            } else {
+                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                Parameter lp = plugin.getUpperFluxBoundInstance();
+                this.setUpperBound(r.getId(), lp.getValue());
+            }
+        }
     }
 
     @Override
@@ -470,5 +489,45 @@ public class SimpleBasicDataset implements Dataset {
         this.isParent = isParent;
     }
 
-    
+    private boolean onlyCofactors(Reaction r) {
+        for (SpeciesReference rf : r.getListOfReactants()) {
+            if (!this.cofactors.contains(rf.getSpecies())) {
+                return Boolean.FALSE;
+            }
+        }
+        for (SpeciesReference rf : r.getListOfProducts()) {
+            if (!this.cofactors.contains(rf.getSpecies())) {
+                return Boolean.FALSE;
+            }
+        }
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public Double getLowerBound(String reaction) {
+        return lb.get(reaction);
+    }
+
+    @Override
+    public Double getUpperBound(String reaction) {
+        return ub.get(reaction);
+    }
+
+    @Override
+    public void setLowerBound(String reaction, Double bound) {
+        if (this.lb == null) {
+            this.lb = new HashMap<>();
+        }
+        this.lb.put(reaction, bound);
+    }
+
+    @Override
+    public void setUpperBound(String reaction, Double bound) {
+        if (this.ub == null) {
+            this.ub = new HashMap<>();
+        }
+        this.ub.put(reaction, bound);
+
+    }
+
 }

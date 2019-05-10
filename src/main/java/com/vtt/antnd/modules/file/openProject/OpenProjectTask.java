@@ -22,9 +22,9 @@ import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.Ant;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.parser.Parser;
 import com.vtt.antnd.data.parser.impl.BasicFilesParserSBML;
 import com.vtt.antnd.main.NDCore;
@@ -146,7 +146,7 @@ public class OpenProjectTask extends AbstractTask {
                     DataInputStream in = new DataInputStream(sbmlStream);
                     BufferedReader br = new BufferedReader(new InputStreamReader(in));
                     String strLine;
-                    Graph g = null;
+                    AntGraph g = null;
                     while ((strLine = br.readLine()) != null) {
                         if (strLine.contains("Is Parent")) {
                             data.setIsParent(true);
@@ -159,7 +159,7 @@ public class OpenProjectTask extends AbstractTask {
                             data.addSource(strLine.split("= ")[1]);
                         } else if (strLine.contains("Nodes= ")) {
                             if (g == null) {
-                                g = new Graph(null, null);
+                                g = new AntGraph(null, null);
                             }
                             String nodeName = strLine.split("= ")[1];
                             String position = null;                           
@@ -174,7 +174,7 @@ public class OpenProjectTask extends AbstractTask {
                                 name = nodeName.split(" : ")[1];
                             } catch (Exception e) {
                             }
-                            Node n = new Node(id, name);
+                            AntNode n = new AntNode(id, name);
                             if (position != null && !position.contains("null")) {
                                 String[] point = position.split(" , ");
                                 n.setPosition(Double.valueOf(point[0]), Double.valueOf(point[1]));
@@ -185,10 +185,10 @@ public class OpenProjectTask extends AbstractTask {
                         } else if (strLine.contains("Edges= ")) {
                             String edgeName = strLine.split("= ")[1].split(" // ")[0];
                             String[] parts = strLine.split(" // ");
-                            Node source = g.getNode(parts[1].split(" \\|\\| ")[0]);
-                            Node destination = g.getNode(parts[1].split(" \\|\\| ")[1]);
+                            AntNode source = g.getNode(parts[1].split(" \\|\\| ")[0]);
+                            AntNode destination = g.getNode(parts[1].split(" \\|\\| ")[1]);
                             boolean direction = Boolean.getBoolean(parts[2]);
-                            Edge e = new Edge(edgeName, source, destination, direction);
+                            AntEdge e = new AntEdge(edgeName, source, destination, direction);
                             g.addEdge(e);
                         } else {
                             data.addInfo(strLine);

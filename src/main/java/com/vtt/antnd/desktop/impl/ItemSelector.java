@@ -329,16 +329,20 @@ public class ItemSelector extends JPanel implements ActionListener,
             JPanel pn = new JPanel();
             JScrollPane panel = new JScrollPane(pn);
 
-            frame.setSize(new Dimension(700, 500));
+            //
             frame.add(panel);
-            NDCore.getDesktop().addInternalFrame(frame);
+           // panel.add(pn);
+           // NDCore.getDesktop().addInternalFrame(frame);
 
-            PrintPaths print = new PrintPaths(file.getDocument().getModel());
+            PrintPaths2 print = new PrintPaths2(file);
            // try {
 
                 System.out.println("Visualize");                
-                pn.add(print.printPathwayInFrame(file.getGraph()));
-
+                frame.add(print.printPathwayInFrame(file.getGraph()));
+            
+           
+            NDCore.getDesktop().addInternalFrame(frame);
+            frame.pack();
             //} catch (NullPointerException ex) {
             //    System.out.println(ex.toString());
            // }

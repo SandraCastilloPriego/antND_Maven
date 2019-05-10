@@ -24,32 +24,36 @@ import java.awt.geom.Point2D;
  *
  * @author scsandra
  */
-public class Node {
+public class AntNode {
 
     private String id;
-    private String name =null;
+    private String name = null;
     private Point2D position;
     private Color color;
 
-    public Node(String id) {
+    public AntNode(String id) {
         this.id = id;
         this.color = null;
         this.position = null;
     }
 
-    public Node(String id, String name) {
+    public AntNode(String id, String name) {
         this.id = id;
         this.name = name;
         this.color = null;
         this.position = null;
-    } 
+    }
 
     public String getId() {
         return id;
     }
 
     public String getCompleteId() {
-        return this.id + " : " + this.getName();
+        if (this.getName() != null) {
+            return this.id + " : " + this.getName();
+        } else {
+            return this.id;
+        }
     }
 
     public String getName() {
@@ -61,8 +65,8 @@ public class Node {
     }
 
     @Override
-    public Node clone() {
-        Node n = new Node(this.id, this.name);
+    public AntNode clone() {
+        AntNode n = new AntNode(this.id, this.name);
         n.position = this.position;
         return n;
     }

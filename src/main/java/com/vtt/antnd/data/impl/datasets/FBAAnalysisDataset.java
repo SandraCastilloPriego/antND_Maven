@@ -10,9 +10,9 @@ import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.main.NDCore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +44,7 @@ public class FBAAnalysisDataset implements Dataset {
     private SBMLDocument document;
     private final JTextArea textArea;
     private List<String> sources;
-    private Graph graph;
+    private AntGraph graph;
     private boolean isCluster = false;
     private HashMap<String, ReactionFA> reactions;
     private HashMap<String, SpeciesFA> compounds;
@@ -72,22 +72,22 @@ public class FBAAnalysisDataset implements Dataset {
     }
 
     @Override
-    public void setNodes(List<Node> nodes) {
+    public void setNodes(List<AntNode> nodes) {
         
     }
 
     @Override
-    public void setEdges(List<Edge> edges) {
+    public void setEdges(List<AntEdge> edges) {
         
     }
 
     @Override
-    public List<Node> getNodes() {
+    public List<AntNode> getNodes() {
         return null;
     }
 
     @Override
-    public List<Edge> getEdges() {
+    public List<AntEdge> getEdges() {
        return null;
     }
 
@@ -113,26 +113,26 @@ public class FBAAnalysisDataset implements Dataset {
     
 
     @Override
-    public void setGraph(Graph graph) {
+    public void setGraph(AntGraph graph) {
         this.graph = graph;
     }
 
     @Override
-    public Graph getGraph() {
+    public AntGraph getGraph() {
         Model model = this.document.getModel();
       
         this.cofactors = NDCore.getCofactors();
-        List<Node> nodeList = new ArrayList<>();
-        List<Edge> edgeList = new ArrayList<>();
+        List<AntNode> nodeList = new ArrayList<>();
+        List<AntEdge> edgeList = new ArrayList<>();
 
-        Graph g = new Graph(nodeList, edgeList);
+        AntGraph g = new AntGraph(nodeList, edgeList);
 
       
         try {
             ListOf listOfReactions = model.getListOfReactions();
             for (int i = 0; i < model.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);           
-                Node reactionNode = new Node(r.getId(), r.getName());
+                AntNode reactionNode = new AntNode(r.getId(), r.getName());
                 this.setPosition(reactionNode);
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
@@ -143,14 +143,14 @@ public class FBAAnalysisDataset implements Dataset {
                     Species sp = model.getSpecies(spr.getSpecies());
 
                     if (this.cofactors.contains(sp.getId())) {
-                        Node cof = new Node(sp.getId(), sp.getName());
+                        AntNode cof = new AntNode(sp.getId(), sp.getName());
 
                         g.addNode(cof);
                         g.addEdge(addEdge(cof, reactionNode, sp.getId(), direction));
                     } else {
-                        Node spNode = g.getNode(sp.getId());
+                        AntNode spNode = g.getNode(sp.getId());
                         if (spNode == null) {
-                            spNode = new Node(sp.getId(), sp.getName());
+                            spNode = new AntNode(sp.getId(), sp.getName());
                         }
                         this.setPosition(spNode);
                         g.addNode(spNode);
@@ -164,13 +164,13 @@ public class FBAAnalysisDataset implements Dataset {
                     Species sp = model.getSpecies(spr.getSpecies());
 
                     if (this.cofactors.contains(sp.getId())) {
-                        Node cof = new Node(sp.getId(), sp.getName());
+                        AntNode cof = new AntNode(sp.getId(), sp.getName());
                         g.addNode(cof);
                         g.addEdge(addEdge(reactionNode, cof, sp.getId(), direction));
                     } else {
-                        Node spNode = g.getNode(sp.getId());
+                        AntNode spNode = g.getNode(sp.getId());
                         if (spNode == null) {
-                            spNode = new Node(sp.getId(), sp.getName());
+                            spNode = new AntNode(sp.getId(), sp.getName());
                         }
                         this.setPosition(spNode);
                         g.addNode(spNode);
@@ -186,8 +186,8 @@ public class FBAAnalysisDataset implements Dataset {
         this.graph = g;
         return g;
     }
-     private void setPosition(Node node) {
-        Node gNode = this.graph.getNode(node.getId());
+     private void setPosition(AntNode node) {
+        AntNode gNode = this.graph.getNode(node.getId());
         if (gNode != null) {
             node.setPosition(gNode.getPosition());
         }
@@ -234,19 +234,19 @@ public class FBAAnalysisDataset implements Dataset {
         return direction;
     }
 
-    private Edge addEdge(Node node1, Node node2, String name, int direction) {
-        Edge e = null;
+    private AntEdge addEdge(AntNode node1, AntNode node2, String name, int direction) {
+        AntEdge e = null;
         switch (direction) {
             case 1:
-                e = new Edge(name, node1, node2);
+                e = new AntEdge(name, node1, node2);
                 e.setDirection(true);
                 break;
             case 2:
-                e = new Edge(name, node1, node2);
+                e = new AntEdge(name, node1, node2);
                 e.setDirection(false);
                 break;
             case 0:
-                e = new Edge(name, node2, node1);
+                e = new AntEdge(name, node2, node1);
                 e.setDirection(true);
                 break;
             default:
@@ -437,4 +437,26 @@ public class FBAAnalysisDataset implements Dataset {
     public Double getFlux(String reaction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public Double getLowerBound(String reaction) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Double getUpperBound(String reaction) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setLowerBound(String reaction, Double bound) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setUpperBound(String reaction, Double bound) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+  
 }

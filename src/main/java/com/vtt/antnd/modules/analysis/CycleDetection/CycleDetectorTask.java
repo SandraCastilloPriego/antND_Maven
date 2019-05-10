@@ -18,9 +18,9 @@
 package com.vtt.antnd.modules.analysis.CycleDetection;
 
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.parameters.SimpleParameterSet;
@@ -168,8 +168,8 @@ public class CycleDetectorTask extends AbstractTask {
         return jgraph;
     }
 
-    private Node getNode(ArrayList<Node> nodes, String id){
-        for( Node n :nodes){   
+    private AntNode getNode(ArrayList<AntNode> nodes, String id){
+        for( AntNode n :nodes){   
             if(n.getId().equals(id)) return n;
         }
         return null;
@@ -178,10 +178,10 @@ public class CycleDetectorTask extends AbstractTask {
     private void createGraph(Set<String> cycles, Model model) {
         
        
-        ArrayList<Node> nodes = new ArrayList<>();
-        ArrayList<Edge> edges = new ArrayList<>();
+        ArrayList<AntNode> nodes = new ArrayList<>();
+        ArrayList<AntEdge> edges = new ArrayList<>();
         for(String cycle : cycles){
-            Node node = new Node(cycle);
+            AntNode node = new AntNode(cycle);
             nodes.add(node);
         }
         for (String cycle: cycles){
@@ -196,13 +196,13 @@ public class CycleDetectorTask extends AbstractTask {
                       String sp = ((SpeciesReference)spref.get(i)).getSpecies();
                   
                       if(lowerBound < 0 && upperBound > 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), false);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), false);
                           edges.add(e);
                       }else if(lowerBound < 0 && upperBound == 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, r.getId()),getNode(nodes, sp), true);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, r.getId()),getNode(nodes, sp), true);
                           edges.add(e);
                       }else if(lowerBound ==0  && upperBound > 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), true);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), true);
                           edges.add(e);
                       }
                       
@@ -214,13 +214,13 @@ public class CycleDetectorTask extends AbstractTask {
                       String sp = ((SpeciesReference)spref.get(i)).getSpecies();
                   
                       if(lowerBound < 0 && upperBound > 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), false);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), false);
                           edges.add(e);
                       }else if(lowerBound < 0 && upperBound == 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, r.getId()),getNode(nodes, sp), true);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, r.getId()),getNode(nodes, sp), true);
                           edges.add(e);
                       }else if(lowerBound ==0  && upperBound > 0){
-                          Edge e = new Edge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), true);
+                          AntEdge e = new AntEdge(sp + uniqueId.nextId(), getNode(nodes, sp), getNode(nodes, r.getId()), true);
                           edges.add(e);
                       }
                       
@@ -228,7 +228,7 @@ public class CycleDetectorTask extends AbstractTask {
             }
             
         }
-        Graph g = new Graph(nodes,edges);
+        AntGraph g = new AntGraph(nodes,edges);
        
         this.tools.createDataFile(g, networkDS, "cycles", null, false,false);
     }

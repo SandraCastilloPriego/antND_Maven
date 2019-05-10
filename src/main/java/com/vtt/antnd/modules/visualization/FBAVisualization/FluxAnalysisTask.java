@@ -21,9 +21,9 @@ import com.vtt.antnd.data.antSimData.Ant;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.util.GetInfoAndTools;
@@ -278,34 +278,34 @@ public class FluxAnalysisTask extends AbstractTask {
 
     }
 
-    private Graph createGraph() {
-        Graph g = new Graph(null, null);
+    private AntGraph createGraph() {
+        AntGraph g = new AntGraph(null, null);
         for (String r : reactions.keySet()) {
             ReactionFA reaction = reactions.get(r);
             if (reaction != null) {
-                Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFinalFlux()));
+                AntNode reactionNode = new AntNode(reaction.getId(), String.valueOf(reaction.getFinalFlux()));
                 g.addNode2(reactionNode);
                 for (String reactant : reaction.getReactants()) {
                     SpeciesFA sp = compounds.get(reactant);
-                    Node reactantNode = g.getNode(reactant);
+                    AntNode reactantNode = g.getNode(reactant);
                     if (reactantNode == null) {
-                        reactantNode = new Node(reactant, sp.getName());
+                        reactantNode = new AntNode(reactant, sp.getName());
                     }
                     g.addNode2(reactantNode);
-                    Edge e;
-                    e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                    AntEdge e;
+                    e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
 
                     g.addEdge(e);
                 }
                 for (String product : reaction.getProducts()) {
                     SpeciesFA sp = compounds.get(product);
-                    Node reactantNode = g.getNode(product);
+                    AntNode reactantNode = g.getNode(product);
                     if (reactantNode == null) {
-                        reactantNode = new Node(product, sp.getName());
+                        reactantNode = new AntNode(product, sp.getName());
                     }
                     g.addNode2(reactantNode);
-                    Edge e;
-                    e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                    AntEdge e;
+                    e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
 
                     g.addEdge(e);
                 }

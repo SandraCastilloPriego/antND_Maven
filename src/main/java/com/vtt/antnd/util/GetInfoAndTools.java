@@ -19,8 +19,8 @@ package com.vtt.antnd.util;
 
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.modules.configuration.sources.SourcesConfParameters;
 import java.io.File;
@@ -193,22 +193,20 @@ public class GetInfoAndTools {
         return b;
     }
     
-    public SimpleBasicDataset createDataFile(Graph graph, Dataset networkDS, String biomassID, List<String> sourcesList, boolean isCluster, boolean isParent) {
+    
+    
+    public SimpleBasicDataset createDataFile(AntGraph graph, Dataset networkDS, String biomassID, List<String> sourcesList, boolean isCluster, boolean isParent) {
         if (graph != null) {
             SBMLDocument newDoc = networkDS.getDocument().clone();
             Model m = networkDS.getDocument().getModel();
             newModel = newDoc.getModel();
-           // ListOf reactions = m.getListOfReactions();
-           // for (int i = 0; i < reactions.size(); i++) {
-            //    Reaction reaction = (Reaction) reactions.get(i);
+          
             for(Reaction reaction:m.getListOfReactions()){
                 if (!isInGraph(reaction.getId(), graph)) {                    
                     newModel.removeReaction(reaction.getId());
                 }
             }
-            //ListOf species = m.getListOfSpecies();
-            //for (int i = 0; i < species.size(); i++) {
-            //    Species sp = (Species) species.get(i);
+            
             for(Species sp:m.getListOfSpecies()){
                 if (!this.isInReactions(newModel.getListOfReactions(), sp)) {
                     newModel.removeSpecies(sp.getId());
@@ -218,7 +216,11 @@ public class GetInfoAndTools {
             SimpleBasicDataset dataset = new SimpleBasicDataset();
             
             dataset.setDocument(newDoc);
-            dataset.setDatasetName(biomassID + " - " + newModel.getId() + ".sbml");
+            if(biomassID != null){
+                dataset.setDatasetName(biomassID + " - " + newModel.getId() + ".sbml");
+            }else{
+                dataset.setDatasetName(m.getId()+ ".sbml");
+            }
             dataset.SetCluster(isCluster);
             dataset.setIsParent(isParent);
             if (!isParent) {
@@ -241,8 +243,8 @@ public class GetInfoAndTools {
         return null;
     }
     
-    private boolean isInGraph(String id, Graph graph) {
-        for (Node n : graph.getNodes()) {
+    private boolean isInGraph(String id, AntGraph graph) {
+        for (AntNode n : graph.getNodes()) {
             if (n.getId().contains(id)) {
                 return true;
             }

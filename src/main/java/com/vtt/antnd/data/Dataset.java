@@ -20,9 +20,9 @@ package com.vtt.antnd.data;
 
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,13 +123,13 @@ public interface Dataset {
         
         public void setInfo(String info);
 
-        public void setNodes(List<Node> nodes);
+        public void setNodes(List<AntNode> nodes);
 
-        public void setEdges(List<Edge> edges);
+        public void setEdges(List<AntEdge> edges);
 
-        public List<Node> getNodes();
+        public List<AntNode> getNodes();
 
-        public List<Edge> getEdges();
+        public List<AntEdge> getEdges();
 
         public void setSources(List<String> sources);
         
@@ -137,13 +137,13 @@ public interface Dataset {
        
         public List<String> getSources();
         
-        public void setGraph(Graph graph);
+        public void setGraph(AntGraph graph);
         
         /**
          *
          * @return
          */
-        public Graph getGraph();
+        public AntGraph getGraph();
         
         public void SetCluster(boolean isCluster);
         
@@ -184,4 +184,13 @@ public interface Dataset {
         public void setFlux(String reaction, Double flux);
         
         public Double getFlux(String reaction);
+        
+        public Double getLowerBound(String reaction);
+        
+        public Double getUpperBound(String reaction);
+        
+        public void setLowerBound(String reaction, Double bound);
+        
+        public void setUpperBound(String reaction, Double bound);        
+      
 }

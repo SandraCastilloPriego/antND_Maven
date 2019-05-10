@@ -19,9 +19,9 @@ package com.vtt.antnd.modules.analysis.KNeighborhood;
 
 
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
@@ -98,7 +98,7 @@ public class KNeighborhoodTask extends AbstractTask {
                 NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
             }
             
-            Graph graph = createGraph();
+            AntGraph graph = createGraph();
            
 
             edu.uci.ics.jung.graph.Graph<String, String> g = this.getGraphForClustering(graph);
@@ -116,20 +116,20 @@ public class KNeighborhoodTask extends AbstractTask {
         }
     }
 
-    public edu.uci.ics.jung.graph.Graph<String, String> getGraphForClustering(Graph graph) {
+    public edu.uci.ics.jung.graph.Graph<String, String> getGraphForClustering(AntGraph graph) {
         edu.uci.ics.jung.graph.Graph<String, String> g = new DirectedSparseMultigraph<>();
 
-        List<Node> nodes = graph.getNodes();
-        List<Edge> edges = graph.getEdges();
+        List<AntNode> nodes = graph.getNodes();
+        List<AntEdge> edges = graph.getEdges();
         System.out.println("Number of nodes: " + nodes.size() + " - " + edges.size());
 
-        for (Node node : nodes) {
+        for (AntNode node : nodes) {
             if (node != null) {
                 g.addVertex(node.getId());
             }
         }
 
-        for (Edge edge : edges) {
+        for (AntEdge edge : edges) {
             if (edge != null) {
                 g.addEdge(edge.getId(), edge.getSource().getId(), edge.getDestination().getId(), EdgeType.DIRECTED);
             }
@@ -139,21 +139,21 @@ public class KNeighborhoodTask extends AbstractTask {
     }
 
     private void createDataSet(edu.uci.ics.jung.graph.Graph<String, String> g) {
-        Map<String, Node> nodesMap = new HashMap<>();
-        List<Node> nodes = new ArrayList<>();
+        Map<String, AntNode> nodesMap = new HashMap<>();
+        List<AntNode> nodes = new ArrayList<>();
         for (String n : g.getVertices()) {
-            Node node = new Node(n);
+            AntNode node = new AntNode(n);
             nodes.add(node);
             nodesMap.put(n, node);
         }
-        List<Edge> edges = new ArrayList<>();
+        List<AntEdge> edges = new ArrayList<>();
         for (String n : g.getEdges()) {
             // System.out.println(g.toString());
             System.out.println(n + " - " + g.getSource(n) + " - " + g.getDest(n));
-            Edge e = new Edge(n, nodesMap.get(g.getSource(n)), nodesMap.get(g.getDest(n)));
+            AntEdge e = new AntEdge(n, nodesMap.get(g.getSource(n)), nodesMap.get(g.getDest(n)));
             edges.add(e);
         }
-        Graph graph = new Graph(nodes, edges);
+        AntGraph graph = new AntGraph(nodes, edges);
         new GetInfoAndTools().createDataFile(graph, this.networkDS, "KNeighbourhood", this.networkDS.getSources(), false, false);
 
     }
@@ -167,13 +167,13 @@ public class KNeighborhoodTask extends AbstractTask {
         return rootNode;
     }
 
-    private Graph createGraph() {
+    private AntGraph createGraph() {
         Model m = this.networkDS.getDocument().getModel();
-        Graph g = new Graph(null, null);
+        AntGraph g = new AntGraph(null, null);
         ListOf reactions = m.getListOfReactions();
         for (int i= 0; i < reactions.size();i++) {
             Reaction reaction = (Reaction) reactions.get(i);
-            Node reactionNode = new Node(reaction.getId());
+            AntNode reactionNode = new AntNode(reaction.getId());
             g.addNode2(reactionNode);
 
             ListOf spref = reaction.getListOfReactants();
@@ -182,12 +182,12 @@ public class KNeighborhoodTask extends AbstractTask {
                 Species sp = m.getSpecies(reactant.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
                     //System.out.println(sp.getName());
-                    Node reactantNode = g.getNode(sp.getId());
+                    AntNode reactantNode = g.getNode(sp.getId());
                     if (reactantNode == null) {
-                        reactantNode = new Node(sp.getId(), sp.getName());
+                        reactantNode = new AntNode(sp.getId(), sp.getName());
                     }
                     g.addNode2(reactantNode);
-                    Edge edge = new Edge(reaction.getId() + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                    AntEdge edge = new AntEdge(reaction.getId() + " - " + uniqueId.nextId(), reactantNode, reactionNode);
 
                     g.addEdge(edge);
                 }
@@ -199,12 +199,12 @@ public class KNeighborhoodTask extends AbstractTask {
                 Species sp = m.getSpecies(product.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
                    // System.out.println(sp.getName());
-                    Node reactantNode = g.getNode(sp.getId());
+                    AntNode reactantNode = g.getNode(sp.getId());
                     if (reactantNode == null) {
-                        reactantNode = new Node(sp.getId(), sp.getName());
+                        reactantNode = new AntNode(sp.getId(), sp.getName());
                     }
                     g.addNode2(reactantNode);
-                    Edge edge = new Edge(reaction.getName() + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                    AntEdge edge = new AntEdge(reaction.getName() + " - " + uniqueId.nextId(), reactionNode, reactantNode);
 
                     g.addEdge(edge);
                 }

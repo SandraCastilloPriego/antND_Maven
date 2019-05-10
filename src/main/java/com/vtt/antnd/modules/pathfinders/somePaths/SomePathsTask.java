@@ -20,9 +20,9 @@ package com.vtt.antnd.modules.pathfinders.somePaths;
 import com.vtt.antnd.data.antSimData.Ant;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.desktop.impl.PrintPaths;
 import com.vtt.antnd.main.NDCore;
@@ -140,7 +140,7 @@ public class SomePathsTask extends AbstractTask {
             if (getStatus() == TaskStatus.PROCESSING) {
                 Ant ant = this.compounds.get(this.biomassID).getAnt();
                 System.out.println("location: " + ant.getLocation());
-                Graph g = this.createGraph(ant.getPath());
+                AntGraph g = this.createGraph(ant.getPath());
                 this.tools.createDataFile(g, networkDS, biomassID, sourcesList, false, false);
                 PrintPaths print = new PrintPaths(this.tools.getModel());
                 try {
@@ -439,15 +439,15 @@ public class SomePathsTask extends AbstractTask {
         return false;
     }
 
-    private Graph createGraph(Map<String, Boolean> path) {
-        Graph g = new Graph(null, null);
-        Graph previousG = this.networkDS.getGraph();
+    private AntGraph createGraph(Map<String, Boolean> path) {
+        AntGraph g = new AntGraph(null, null);
+        AntGraph previousG = this.networkDS.getGraph();
 
         for (String r : path.keySet()) {
             System.out.println(r);
             ReactionFA reaction = reactions.get(r);
             if (reaction != null) {
-                Node reactionNode = new Node(reaction.getId(), String.valueOf(reaction.getFlux()));
+                AntNode reactionNode = new AntNode(reaction.getId(), String.valueOf(reaction.getFlux()));
                 // if (previousG != null) {
                 //     reactionNode.setPosition(previousG.getNode(reaction.getId()).getPosition());
                 // }
@@ -457,9 +457,9 @@ public class SomePathsTask extends AbstractTask {
                 for (String reactant : reaction.getReactants()) {
                     SpeciesFA sp = compounds.get(reactant);
 
-                    Node reactantNode = g.getNode(reactant);
+                    AntNode reactantNode = g.getNode(reactant);
                     if (reactantNode == null) {
-                        reactantNode = new Node(reactant, sp.getName());
+                        reactantNode = new AntNode(reactant, sp.getName());
                     }
 
                     // if (previousG != null) {
@@ -474,20 +474,20 @@ public class SomePathsTask extends AbstractTask {
                         reactantNode.setColor(Color.MAGENTA);
                     }
 
-                    Edge e;
+                    AntEdge e;
                     if (path.get(r)) {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
                     } else {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
                     }
                     g.addEdge(e);
                 }
 
                 for (String product : reaction.getProducts()) {
                     SpeciesFA sp = compounds.get(product);
-                    Node reactantNode = g.getNode(product);
+                    AntNode reactantNode = g.getNode(product);
                     if (reactantNode == null) {
-                        reactantNode = new Node(product, sp.getName());
+                        reactantNode = new AntNode(product, sp.getName());
                     }
                     // if (previousG != null) {
                     //    reactantNode.setPosition(previousG.getNode(product).getPosition());
@@ -500,11 +500,11 @@ public class SomePathsTask extends AbstractTask {
                     if (this.sourcesList.contains(sp.getId())) {
                         reactantNode.setColor(Color.PINK);
                     }
-                    Edge e;
+                    AntEdge e;
                     if (path.get(r)) {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
                     } else {
-                        e = new Edge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
                     }
                     g.addEdge(e);
                 }

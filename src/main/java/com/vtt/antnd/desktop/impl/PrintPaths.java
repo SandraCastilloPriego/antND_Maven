@@ -17,9 +17,9 @@
  */
 package com.vtt.antnd.desktop.impl;
 
-import com.vtt.antnd.data.network.Edge;
-import com.vtt.antnd.data.network.Graph;
-import com.vtt.antnd.data.network.Node;
+import com.vtt.antnd.data.network.AntEdge;
+import com.vtt.antnd.data.network.AntGraph;
+import com.vtt.antnd.data.network.AntNode;
 import com.vtt.antnd.data.network.uniqueId;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.modules.configuration.cofactors.CofactorConfParameters;
@@ -106,7 +106,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
     private edu.uci.ics.jung.graph.Graph<String, String> g;
     Map<String, Color> clusters;
     private boolean showInfo = false;
-    private Graph graph;
+    private AntGraph graph;
     private VisualizationViewer vv;
     SpringLayout layout;
     private JPopupMenu popupMenu;
@@ -127,11 +127,11 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         this.popupMenu = new JPopupMenu();
     }
 
-    public VisualizationViewer printPathwayInFrame(final Graph graph) {
+    public VisualizationViewer printPathwayInFrame(final AntGraph graph) {
         g = new SparseMultigraph<>();
         this.graph = graph;
-        List<Node> nodes = graph.getNodes();
-        List<Edge> edges = graph.getEdges();
+        List<AntNode> nodes = graph.getNodes();
+        List<AntEdge> edges = graph.getEdges();
         colors = new HashMap<>();
         layout = new SpringLayout<>(g);
         //layout = new KKLayout(g);       
@@ -139,7 +139,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         vv = new VisualizationViewer<>(layout);
 
         System.out.println(nodes.size());
-        for (Node node : nodes) {
+        for (AntNode node : nodes) {
             if (node != null) {
                 String name = node.getCompleteId();
                 g.addVertex(name);
@@ -154,7 +154,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             }
         }
 
-        for (Edge edge : edges) {
+        for (AntEdge edge : edges) {
             if (edge != null) {
                 try {
                     if (edge.getDirection()) {
@@ -336,7 +336,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                     } else {
                         selectedNode.remove(vertex);
                         //  System.out.println("Position:" + vertex);
-                        Node n = graph.getNode(vertex.split(" : ")[0]);
+                        AntNode n = graph.getNode(vertex.split(" : ")[0]);
                         if (n != null) {
                             n.setPosition(layout.getX(vertex), layout.getY(vertex));
                             //  System.out.println("New Position:" + vertex + " : " + layout.getX(vertex) + " - " + layout.getY(vertex));
@@ -531,7 +531,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                                 if (v.contains(" : ")) {
                                     spID = v.split(" : ")[0];
                                 }
-                                Node n = graph.getNode(spID);
+                                AntNode n = graph.getNode(spID);
                                 if (n != null) {
                                     n.setColor(selectedColor);
                                 }
@@ -616,7 +616,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         if (initialStringNode.contains(" : ")) {
             spID = initialStringNode.split(" : ")[0];
         }
-        Node initNode = graph.getNode(spID);
+        AntNode initNode = graph.getNode(spID);
 
         Species sp = mInit.getSpecies(spID);
         if (sp == null) {
@@ -680,7 +680,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                     g.addVertex(reactionName);
 
                     // Creates the node for the ANT graph
-                    Node reactionNode = new Node(reactionName);
+                    AntNode reactionNode = new AntNode(reactionName);
                     graph.addNode(reactionNode);
 
                     EdgeType eType = EdgeType.UNDIRECTED;
@@ -708,34 +708,34 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
                                 g.addVertex(vName);
                                 //adds the node to the graph
-                                Node n = new Node(vName);
+                                AntNode n = new AntNode(vName);
                                 graph.addNode(n);
                                 if (lb == 0) {
                                     g.addEdge(eName, vName, reactionName, eType);
-                                    graph.addEdge(new Edge(eName, n, reactionNode, direction));
+                                    graph.addEdge(new AntEdge(eName, n, reactionNode, direction));
                                 } else {
                                     g.addEdge(eName, reactionName, vName, eType);
-                                    graph.addEdge(new Edge(eName, reactionNode, n, direction));
+                                    graph.addEdge(new AntEdge(eName, reactionNode, n, direction));
                                 }
                             } else {
                                 if (lb == 0) {
                                     g.addEdge(initSPName, initialStringNode, reactionName, eType);
-                                    graph.addEdge(new Edge(sp.getId(), initNode, reactionNode, direction));
+                                    graph.addEdge(new AntEdge(sp.getId(), initNode, reactionNode, direction));
                                 } else {
                                     g.addEdge(initSPName, reactionName, initialStringNode, eType);
-                                    graph.addEdge(new Edge(sp.getId(), reactionNode, initNode, direction));
+                                    graph.addEdge(new AntEdge(sp.getId(), reactionNode, initNode, direction));
                                 }
                             }
                         } else {
 
-                            Node reactantNode = graph.getNode(spName);
+                            AntNode reactantNode = graph.getNode(spName);
                             String eName = spName + " - " + uniqueId.nextId();
                             if (lb == 0) {
                                 g.addEdge(eName, nodeReactant, reactionName, eType);
-                                graph.addEdge(new Edge(eName, reactantNode, reactionNode, direction));
+                                graph.addEdge(new AntEdge(eName, reactantNode, reactionNode, direction));
                             } else {
                                 g.addEdge(eName, reactionName, nodeReactant, eType);
-                                graph.addEdge(new Edge(eName, reactionNode, reactantNode, direction));
+                                graph.addEdge(new AntEdge(eName, reactionNode, reactantNode, direction));
                             }
 
                         }
@@ -754,34 +754,34 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
 
                                 g.addVertex(vName);
                                 //adds the node to the graph
-                                Node n = new Node(vName);
+                                AntNode n = new AntNode(vName);
                                 graph.addNode(n);
                                 if (lb == 0) {
                                     g.addEdge(eName, reactionName, vName, eType);
-                                    graph.addEdge(new Edge(eName, reactionNode, n, direction));
+                                    graph.addEdge(new AntEdge(eName, reactionNode, n, direction));
                                 } else {
                                     g.addEdge(eName, vName, reactionName, eType);
-                                    graph.addEdge(new Edge(eName, n, reactionNode, direction));
+                                    graph.addEdge(new AntEdge(eName, n, reactionNode, direction));
                                 }
                             } else {
                                 if (lb == 0) {
                                     g.addEdge(initSPName, initialStringNode, reactionName, eType);
-                                    graph.addEdge(new Edge(sp.getId(), initNode, reactionNode, direction));
+                                    graph.addEdge(new AntEdge(sp.getId(), initNode, reactionNode, direction));
 
                                 } else {
                                     g.addEdge(initSPName, reactionName, initialStringNode, eType);
-                                    graph.addEdge(new Edge(sp.getId(), reactionNode, initNode, direction));
+                                    graph.addEdge(new AntEdge(sp.getId(), reactionNode, initNode, direction));
                                 }
                             }
                         } else {
-                            Node productNode = graph.getNode(spId);
+                            AntNode productNode = graph.getNode(spId);
                             String eName = spId + " - " + uniqueId.nextId();
                             if (lb == 0) {
                                 g.addEdge(eName, reactionName, nodeProduct, eType);
-                                graph.addEdge(new Edge(eName, reactionNode, productNode, direction));
+                                graph.addEdge(new AntEdge(eName, reactionNode, productNode, direction));
                             } else {
                                 g.addEdge(eName, nodeProduct, reactionName, eType);
-                                graph.addEdge(new Edge(eName, productNode, reactionNode, direction));
+                                graph.addEdge(new AntEdge(eName, productNode, reactionNode, direction));
                             }
                         }
                     }
@@ -821,7 +821,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
         Layout<String, String> layout = vv.getGraphLayout();
         for (String v : V) {
             layout.lock(v, true);
-            Node n = graph.getNode(v.split(" : ")[0]);
+            AntNode n = graph.getNode(v.split(" : ")[0]);
             if (n != null) {
                 n.setPosition(this.layout.getX(v), this.layout.getY(v));
                 //  System.out.println("New Position:" + vertex + " : " + layout.getX(vertex) + " - " + layout.getY(vertex));
@@ -933,7 +933,7 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             if (name.contains(" : ")) {
                 name = name.split((" : "))[0];
             }
-            Node node = this.graph.getNode(name);
+            AntNode node = this.graph.getNode(name);
             if (node != null) {
                 node.setColor(selectedColor);
             }
@@ -1075,10 +1075,10 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
             writer.println("Creator \"AntND\"");
             writer.println("Version	1.0");
             writer.println("graph\t[");
-            Map<Node, String> indexes = new HashMap<>();
-            List<Node> nodes = graph.getNodes();
+            Map<AntNode, String> indexes = new HashMap<>();
+            List<AntNode> nodes = graph.getNodes();
             int i = 1;
-            for (Node node : nodes) {
+            for (AntNode node : nodes) {
                 indexes.put(node, String.valueOf(i));
                 writer.println("\tnode\t[");
                 writer.println("\t\troot_index\t" + i);
@@ -1103,9 +1103,9 @@ public class PrintPaths implements KeyListener, GraphMouseListener, ActionListen
                 writer.println("\t]");
             }
 
-            List<Edge> edges = graph.getEdges();
+            List<AntEdge> edges = graph.getEdges();
 
-            for (Edge edge : edges) {
+            for (AntEdge edge : edges) {
                 writer.println("\tedge\t[");
                 writer.println("\t\troot_index\t" + i++);
                 writer.println("\t\ttarget\t" + indexes.get(edge.getDestination()));

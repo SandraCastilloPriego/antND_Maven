@@ -150,6 +150,7 @@ public abstract class Analysis {
                     this.metabolitesList.add(product);
                 }
             }
+            System.out.println(r.getId()+" - " +r.getObjective());
             this.objectiveList.add(r.getObjective());
             this.reactionPositionMap.put(r.getId(), i++);
         }
