@@ -37,6 +37,7 @@ import com.vtt.antnd.modules.reactionOp.showReaction.ShowReactionModule;
 import com.vtt.antnd.modules.simulation.FBA.LPModule;
 import com.vtt.antnd.modules.simulation.pFBA.LPModuleMinimize;
 import com.vtt.antnd.modules.visualization.FBAVisualization.FluxAnalysisModule;
+import com.vtt.antnd.modules.visualization.ReactionVisualization.ReactionVisualizationModule;
 
 
 
@@ -68,6 +69,7 @@ public class NDModulesList {
         KNeighborhoodModule.class,
         ClusteringBetweennessModule.class,
         CycleDetectorModule.class,
+        ReactionVisualizationModule.class
         
         };
 }

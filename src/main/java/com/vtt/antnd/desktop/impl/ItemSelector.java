@@ -326,11 +326,11 @@ public class ItemSelector extends JPanel implements ActionListener,
 
         for (Dataset file : selectedFiles) {
             JInternalFrame frame = new JInternalFrame(file.getDatasetName(), true, true, true, true);
-            JPanel pn = new JPanel();
-            JScrollPane panel = new JScrollPane(pn);
+           // JPanel pn = new JPanel();
+            //JScrollPane panel = new JScrollPane(pn);
 
             //
-            frame.add(panel);
+            //frame.add(panel);
            // panel.add(pn);
            // NDCore.getDesktop().addInternalFrame(frame);
 

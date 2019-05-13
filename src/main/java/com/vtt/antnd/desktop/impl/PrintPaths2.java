@@ -110,13 +110,13 @@ public class PrintPaths2 implements KeyListener {
             }
             Node gNode = g.getNode(name);
             if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
-                gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
+                gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
                 gNode.addAttribute("ui.label", r);
             } else if (this.cofactors.contains(r)) {
                 gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
                 gNode.addAttribute("ui.label", n);
             } else {
-                gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
+                gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
                 gNode.addAttribute("ui.label", n);
 
             }
@@ -170,12 +170,16 @@ public class PrintPaths2 implements KeyListener {
         JScrollPane sc = new JScrollPane(this.area);
         sc.setAutoscrolls(true);
         sc.setPreferredSize(new Dimension(300, 170));
-        topPanel.add(sc);
+        // topPanel.add(sc);
 
         topPanel.add(saveButton);
-        topPanel.setPreferredSize(new Dimension(650, 200));
+        topPanel.setPreferredSize(new Dimension(140, 50));
         topPanel.setBackground(Color.WHITE);
-        viewPanel.add(topPanel);
+        try {
+            viewPanel.add(topPanel);
+        } catch (Exception e) {
+            System.out.println(e.toString());
+        }
         viewPanel.setPreferredSize(new Dimension(700, 700));
         viewPanel.setVisible(true);
 
@@ -202,7 +206,7 @@ public class PrintPaths2 implements KeyListener {
             writer.println("\tlabel\t\"\"");
             writer.println("\tdirected\t1");
             Map<Node, String> indexes = new HashMap<>();
-            
+
             int i = 0;
             for (Node node : this.g.getEachNode()) {
                 indexes.put(node, String.valueOf(i));
@@ -213,7 +217,7 @@ public class PrintPaths2 implements KeyListener {
                 writer.println("\t\tgraphics\n\t\t[");
 
                 //Position
-                String gnodestr = isThereCofactor(node.getId());
+                String gnodestr = isThere(node.getId());
                 GraphicNode n = viewer.getGraphicGraph().getNode(gnodestr);
                 double x = n.getX();
                 double y = n.getY();
@@ -228,9 +232,9 @@ public class PrintPaths2 implements KeyListener {
                 //Nodes
                 if (this.m.getSpecies(name) != null) {
                     if (this.cofactors.contains(name)) {
-                        writeSpecie(writer, 15,node.getAttribute("ui.label"));
+                        writeSpecie(writer, 15, node.getAttribute("ui.label"));
                     } else {
-                        writeSpecie(writer, 35,node.getAttribute("ui.label"));
+                        writeSpecie(writer, 35, node.getAttribute("ui.label"));
                     }
                 } else {
                     writeReaction(writer, node.getAttribute("ui.label"));
@@ -242,17 +246,15 @@ public class PrintPaths2 implements KeyListener {
 
             }
 
-            
-
             for (Edge edge : g.getEachEdge()) {
-                
+
                 writer.println("\tedge\n\t[");
                 // writer.println("\t\troot_index\t" + i++);
                 writer.println("\t\ttarget\t" + indexes.get(edge.getTargetNode()));
                 writer.println("\t\tsource\t" + indexes.get(edge.getSourceNode()));
                 writer.println("\t\tgraphics\n\t\t[");
                 writer.println("\t\t\tfill\t\"#000000\"");
-                if(edge.isDirected()){
+                if (edge.isDirected()) {
                     writer.println("\t\t\ttargetArrow\t\"standard\"");
                 }
                 writer.println("\t\t]");
@@ -399,7 +401,7 @@ public class PrintPaths2 implements KeyListener {
                     String sourceLine = node.toString();
                     area.setText(data(sourceLine));
                     selectedNode.add(sourceLine);
-                    node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 15px;text-alignment: center;");
+                    node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 25px;text-alignment: center;");
 
                     if (e.isPopupTrigger()) {
                         popupMenu = new JPopupMenu();
@@ -447,13 +449,13 @@ public class PrintPaths2 implements KeyListener {
                     String n = sourceLine.split(" - ")[0];
                     String r = sourceLine.split(" : ")[0];
                     if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
-                        gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
+                        gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
                         gNode.addAttribute("ui.label", r);
                     } else if (cofactors.contains(r)) {
                         gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
                         gNode.addAttribute("ui.label", n);
                     } else {
-                        gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
+                        gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
                         gNode.addAttribute("ui.label", n);
 
                     }
@@ -533,7 +535,7 @@ public class PrintPaths2 implements KeyListener {
                 if (node != null) {
                     String sourceLine = node.toString();
                     selectedNode.add(sourceLine);
-                    node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 15px;text-alignment: center;");
+                    node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 25px;text-alignment: center;");
                 }
 
             } catch (NumberFormatException ex) {
@@ -671,18 +673,6 @@ public class PrintPaths2 implements KeyListener {
     }
 
     private String isThere(String node) {
-        if (this.cofactors.contains(node)) {
-            return null;
-        }
-        for (Node v : this.g.getEachNode()) {
-            if (v.getId().contains(node)) {
-                return v.getId();
-            }
-        }
-        return null;
-    }
-
-    private String isThereCofactor(String node) {
         for (Node v : this.g.getEachNode()) {
             if (v.getId().contains(node)) {
                 return v.getId();
@@ -743,7 +733,7 @@ public class PrintPaths2 implements KeyListener {
                     }
                     // adds the new reaction to the visualization graph
                     Node rNode = g.addNode(reactionName);
-                    rNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 15px;text-alignment: center;text-size:12px;");
+                    rNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
                     rNode.addAttribute("ui.label", reactionName);
 
                     // Creates the node for the ANT graph
@@ -762,7 +752,7 @@ public class PrintPaths2 implements KeyListener {
                         String spName = sps.getId();
                         String nodeReactant;
                         if (cofactors.contains(spName)) {
-                            nodeReactant = this.isThereCofactor(spName);
+                            nodeReactant = null;
                         } else {
                             nodeReactant = this.isThere(spName);
                         }
@@ -774,10 +764,10 @@ public class PrintPaths2 implements KeyListener {
                                 Node spNode = g.addNode(vName);
                                 if (cofactors.contains(spName)) {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", vName);
+                                    spNode.addAttribute("ui.label", spName + " : " + sps.getName());
                                 } else {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", vName);
+                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+                                    spNode.addAttribute("ui.label", spName + " : " + sps.getName());
                                 }
                                 //adds the node to the graph
                                 AntNode n = new AntNode(vName);
@@ -818,8 +808,13 @@ public class PrintPaths2 implements KeyListener {
                     for (SpeciesReference sr : r.getListOfProducts()) {
                         String spId = sr.getSpecies();
                         Species sps = mInit.getSpecies(spId);
+                        String nodeProduct;
+                        if (cofactors.contains(spId)) {
+                            nodeProduct = null;
+                        } else {
+                            nodeProduct = this.isThere(spId);
+                        }
 
-                        String nodeProduct = this.isThere(spId);
                         if (nodeProduct == null) {
 
                             if (!spId.equals(spID)) {
@@ -829,10 +824,10 @@ public class PrintPaths2 implements KeyListener {
                                 Node spNode = g.addNode(vName);
                                 if (cofactors.contains(spId)) {
                                     spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", vName);
+                                    spNode.addAttribute("ui.label", spId + " : " + sps.getName());
                                 } else {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 15px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", vName);
+                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+                                    spNode.addAttribute("ui.label", spId + " : " + sps.getName());
                                 }
                                 //adds the node to the graph
                                 AntNode n = new AntNode(vName);
@@ -904,10 +899,8 @@ public class PrintPaths2 implements KeyListener {
                 spref.setSpecies(sp.getSpecies());
             }
         });
-        
 
-       // r.appendNotes(reaction.getNotes());
-
+        // r.appendNotes(reaction.getNotes());
         m.addReaction(reaction.clone());
         this.dataset.setLowerBound(r.getId(), datasetInit.getLowerBound(r.getId()));
         this.dataset.setUpperBound(r.getId(), datasetInit.getUpperBound(r.getId()));
