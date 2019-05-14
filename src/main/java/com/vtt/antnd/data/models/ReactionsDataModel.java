@@ -118,9 +118,9 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                 case "Reaction extended":
                     return getReactionExt(r, this.dataset.getDocument().getModel());
                 case "Lower bound":
-                   return this.dataset.getLowerBound(r.getId());
+                    return this.dataset.getLowerBound(r.getId());
                 case "Upper bound":
-                   return this.dataset.getUpperBound(r.getId()); 
+                    return this.dataset.getUpperBound(r.getId());
                 case "Notes":
                     String notes;
                     try {
@@ -186,65 +186,67 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     @Override
     @SuppressWarnings("fallthrough")
     public void setValueAt(Object aValue, int row, int column) {
-       // try {
-            String info = "";
-            Model model = this.dataset.getDocument().getModel();
-            Reaction r = model.getReaction(row);
+        // try {
+        String info = "";
+        Model model = this.dataset.getDocument().getModel();
+        Reaction r = model.getReaction(row);
 
-            String value = columns.get(column).getColumnName();
-            switch (value) {
-                case "Number":
-                    return;
-                case "Id":
-                    if (aValue == null || aValue.toString().isEmpty() || aValue.equals("NA")) {
-                        info = info + "\n- The reaction " + r.getId() + " - " + r.getName() + " has been removed : \n" + getReactionNoExt(r) + "\n" + getReactionExt(r, this.dataset.getDocument().getModel()) + "\n------------------";
-                        dataset.addInfo(info);
-
-                        this.dataset.getDocument().getModel().removeReaction(r.getId());
-                        AntGraph g = this.dataset.getGraph();
-                        AntNode n = g.getNode(r.getId());
-                        if (n != null) {
-                            g.removeNode(n.getId());
-                        }
-
-                    } else {
-                        info = info + "\n- Id of the reaction " + r.getId() + " - " + r.getName() + " has changed to " + aValue.toString();
-                        dataset.addInfo(info);
-                        r.setId(aValue.toString());
-                    }
-                    return;
-                case "Name":
-                    r.setName(aValue.toString());
-                    info = info + "\n- Name of the reaction " + r.getId() + " - " + r.getName() + " has changed to " + aValue.toString();
+        String value = columns.get(column).getColumnName();
+        switch (value) {
+            case "Number":
+                return;
+            case "Id":
+                if (aValue == null || aValue.toString().isEmpty() || aValue.equals("NA")) {
+                    info = info + "\n- The reaction " + r.getId() + " - " + r.getName() + " has been removed : \n" + getReactionNoExt(r) + "\n" + getReactionExt(r, this.dataset.getDocument().getModel()) + "\n------------------";
                     dataset.addInfo(info);
-                    return;
-                case "Reaction":
-                    changeReaction(r, aValue.toString());
-                    return;
-                case "Reaction extended":
-                    changeReaction(r, aValue.toString());
-                    dataset.addInfo(info);
-                    return;
-                case "Lower bound":
-                    dataset.setLowerBound(r.getId(), Double.valueOf(aValue.toString()));
-                    return;
-                case "Upper bound":
-                    dataset.setUpperBound(r.getId(), Double.valueOf(aValue.toString()));
-                    return;
-                case "Notes": {
-                    try {
-                        info = info + "\n- Notes of the reaction " + r.getId() + " - " + r.getName() + " have changed from " + r.getNotes().toXMLString() + " to " + aValue.toString();
-                        dataset.addInfo(info);
-                        r.setNotes(value);
-                    } catch (XMLStreamException ex) {
-                        Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
+
+                    this.dataset.getDocument().getModel().removeReaction(r.getId());
+                    AntGraph g = this.dataset.getGraph();
+                    AntNode n = g.getNode(r.getId());
+                    if (n != null) {
+                        g.removeNode(n.getId());
                     }
+
+                } else {
+                    info = info + "\n- Id of the reaction " + r.getId() + " - " + r.getName() + " has changed to " + aValue.toString();
+                    dataset.addInfo(info);
+                    r.setId(aValue.toString());
                 }
                 return;
+            case "Name":
+                r.setName(aValue.toString());
+                info = info + "\n- Name of the reaction " + r.getId() + " - " + r.getName() + " has changed to " + aValue.toString();
+                dataset.addInfo(info);
+                return;
+            case "Reaction":
+                changeReaction(r, aValue.toString());
+                return;
+            case "Reaction extended":
+                changeReaction(r, aValue.toString());
+                dataset.addInfo(info);
+                return;
+            case "Lower bound":
+                dataset.setLowerBound(r.getId(), Double.valueOf(aValue.toString()));
+                return;
+            case "Upper bound":
+                dataset.setUpperBound(r.getId(), Double.valueOf(aValue.toString()));
+                return;
+            case "Notes": {
+                try {
+                    info = info + "\n- Notes of the reaction " + r.getId() + " - " + r.getName() + " have changed from " + r.getNotes().toXMLString() + " to " + aValue.toString();
+                    dataset.addInfo(info);
+                    r.setNotes(value);
+                } catch (XMLStreamException ex) {
+                    Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            return;
 
-                case "Objective":
-                    try {
-                        
+            case "Objective":
+                try {
+                    if (Double.valueOf(aValue.toString()) == 0.0) {
+                        removeObjective(r.getId(), model);
+                    } else {
                         FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
 
                         FluxObjective fx = new FluxObjective();
@@ -258,6 +260,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         for (Objective obj : plugin.getListOfObjectives()) {
                             for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
                                 if (fobj.getReaction().equals(r.getId())) {
+                                    fobj.setCoefficient(Double.valueOf(aValue.toString()));
                                     objf = obj;
                                     break;
                                 }
@@ -265,10 +268,14 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         }
                         if (objf == null) {
                             objf = plugin.createObjective("obj" + r.getId(), type);
+                            objf.addFluxObjective(fx);
+                            plugin.setActiveObjective(objf);
                         }
-                        objf.addFluxObjective(fx);
-                        plugin.setActiveObjective(objf);
-                    } catch (NullPointerException n) {
+
+                    }
+                } catch (NullPointerException n) {
+                    if (Double.valueOf(aValue.toString()) != 0.0) {
+
                         System.out.println("there is no FBCPlugin");
                         FBCModelPlugin plugin = new FBCModelPlugin(model);
                         Type type = Objective.Type.MAXIMIZE;
@@ -282,18 +289,19 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         obj.addFluxObjective(fx);
                         plugin.setActiveObjective(obj);
                     }
+                }
 
-                    //    info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
-                    //   dataset.addInfo(info);                   
-                    return;
-                case "Fluxes":
-                    info = info + "\n- Flux of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + this.dataset.getFlux(r.getId()) + " to " + aValue.toString();
-                    dataset.addInfo(info);
-                    this.dataset.setFlux(r.getId(), Double.valueOf(aValue.toString()));
-                    return;
-            }
+                //    info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
+                //   dataset.addInfo(info);                   
+                return;
+            case "Fluxes":
+                info = info + "\n- Flux of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + this.dataset.getFlux(r.getId()) + " to " + aValue.toString();
+                dataset.addInfo(info);
+                this.dataset.setFlux(r.getId(), Double.valueOf(aValue.toString()));
+                return;
+        }
 
-            fireTableCellUpdated(row, column);
+        fireTableCellUpdated(row, column);
         //} catch (Exception e) {
 
         //}
@@ -405,5 +413,18 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     @Override
     public Dataset getDataset() {
         return this.dataset;
+    }
+
+    private void removeObjective(String id, Model model) {
+        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+        for (Objective obj : plugin.getListOfObjectives()) {
+            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                if (fobj.getReaction().equals(id)) {
+                    obj.removeFluxObjective(fobj);
+                    break;
+                }
+            }
+        }
+
     }
 }
