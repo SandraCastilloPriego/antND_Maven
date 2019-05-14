@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.modules.reactionOp.showReaction;
 
-
 import com.vtt.antnd.data.impl.datasets.SimpleBasicDataset;
 import com.vtt.antnd.main.NDCore;
 import com.vtt.antnd.parameters.SimpleParameterSet;
@@ -29,9 +28,7 @@ import java.util.List;
 import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
@@ -93,14 +90,14 @@ public class ShowReactionTask extends AbstractTask {
             String[] reactionNames = new String[1];
             if (this.reactionName.contains(",")) {
                 reactionNames = this.reactionName.split(",");
-            }else{
+            } else {
                 reactionNames[0] = this.reactionName;
             }
 
             for (String reactionName : reactionNames) {
                 reactionName = reactionName.trim();
                 ListOf reactions = m.getListOfReactions();
-                for (int i =0; i < reactions.size(); i++) {
+                for (int i = 0; i < reactions.size(); i++) {
                     Reaction r = (Reaction) reactions.get(i);
                     if (r.getId().contains(reactionName) || r.getName().contains(reactionName)) {
                         possibleReactions.add(r);
@@ -108,8 +105,7 @@ public class ShowReactionTask extends AbstractTask {
                 }
             }
 
-            if (possibleReactions.isEmpty()) {
-                //this.networkDS.setInfo("The reaction" + reactionName + " doesn't exist in this model.");
+            if (possibleReactions.isEmpty()) {               
                 NDCore.getDesktop().displayMessage("The reaction " + reactionName + " doesn't exist in this model.");
             } else {
                 this.showReactions(possibleReactions);
@@ -129,24 +125,20 @@ public class ShowReactionTask extends AbstractTask {
 
         for (Reaction r : possibleReactions) {
 
-            KineticLaw law = r.getKineticLaw();
-            if (law != null) {
-                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                info.append(r.getId()).append(" - ").append(r.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append(":\n");
-            } else {
-                info.append(r.getId()).append(":\n");
-            }
+            Double lbound = this.networkDS.getLowerBound(r.getId());
+            Double ubound = this.networkDS.getUpperBound(r.getId());
+            info.append(r.getId()).append(" - ").append(r.getName()).append(" lb: ").append(lbound).append(" up: ").append(ubound).append(":\n");
+
             info.append("Reactants: \n");
             ListOf spref = r.getListOfReactants();
-            for (int i=0; i < spref.size(); i++) {
+            for (int i = 0; i < spref.size(); i++) {
                 SpeciesReference sr = (SpeciesReference) spref.get(i);
                 Species sp = sr.getModel().getSpecies(sr.getSpecies());
                 info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
             }
             info.append("Products: \n");
             spref = r.getListOfProducts();
-            for (int i=0; i < spref.size(); i++) {
+            for (int i = 0; i < spref.size(); i++) {
                 SpeciesReference sr = (SpeciesReference) spref.get(i);
                 Species sp = sr.getModel().getSpecies(sr.getSpecies());
                 info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");

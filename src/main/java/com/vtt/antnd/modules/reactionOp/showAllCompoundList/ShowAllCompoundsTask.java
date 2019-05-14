@@ -40,12 +40,12 @@ import org.sbml.jsbml.Species;
  */
 public class ShowAllCompoundsTask extends AbstractTask {
 
-        private SimpleBasicDataset networkDS;
+        private final SimpleBasicDataset networkDS;
         private double finishedPercentage = 0.0f;
-        private JInternalFrame frame;
-        private JScrollPane panel;
-        private JTextArea tf;
-        private StringBuffer info;
+        private final JInternalFrame frame;
+        private final JScrollPane panel;
+        private final JTextArea tf;
+        private final StringBuffer info;
 
         public ShowAllCompoundsTask(SimpleBasicDataset dataset) {
                 networkDS = dataset;
@@ -108,12 +108,8 @@ public class ShowAllCompoundsTask extends AbstractTask {
         private void showCompounds(ListOf<Species> possibleSpecies, Model m) {
                 float count = 0;
                 for (Species sp : possibleSpecies) {
-                       // Species sp = (Species) possibleSpecies.get(i);
-                        info.append(sp.getId()).append(" - ").append(sp.getName());
-                        info.append("\nPresent in: ");
-                       // ListOf reactions = m.getListOfReactions();
-                        //for (int e = 0; e < reactions.size(); e++) {
-                        //   Reaction r = (Reaction) reactions.get(e);
+                                      info.append(sp.getId()).append(" - ").append(sp.getName());
+                        info.append("\nPresent in: ");                     
                         for(Reaction r: m.getListOfReactions()){
                                 if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                                         info.append(r.getId()).append(", ");
