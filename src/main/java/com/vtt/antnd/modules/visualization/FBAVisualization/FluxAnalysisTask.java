@@ -203,25 +203,8 @@ public class FluxAnalysisTask extends AbstractTask {
 
             ReactionFA reaction = new ReactionFA(r.getId());
             this.networkDS.setFlux(r.getId(), fluxes.get(r.getId()));
-
-            try {
-                KineticLaw law = r.getKineticLaw();
-                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                reaction.setBounds(lbound.getValue(), ubound.getValue());
-            } catch (Exception ex) {
-                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                if (plugin == null) {
-                    reaction.setBounds(-1000, 1000);
-                }
-                Parameter lbp = plugin.getLowerFluxBoundInstance();
-                Parameter ubp = plugin.getUpperFluxBoundInstance();
-                if (lbp != null) {
-                    reaction.setBounds(lbp.getValue(), ubp.getValue());
-                } else {
-                    reaction.setBounds(-1000, 1000);
-                }
-            }
+            
+            reaction.setBounds(this.networkDS.getLowerBound(r.getId()),this.networkDS.getUpperBound(r.getId()));
             ListOf spref = r.getListOfReactants();
             for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);

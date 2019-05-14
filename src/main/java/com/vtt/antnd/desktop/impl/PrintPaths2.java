@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
@@ -63,15 +64,11 @@ import org.sbml.jsbml.SpeciesReference;
 public class PrintPaths2 implements KeyListener {
 
     private final Model m;
-    // private TransFrame transFrame = null;
     private final List<String> selectedNode;
     private AntGraph antGraph;
     private final Dataset dataset;
-    Map<String, Color> clusters;
     private JPopupMenu popupMenu;
     JPanel topPanel;
-    JColorChooser tcc;
-    JButton banner;
     Color selectedColor;
     Map<String, Color> colors;
     String cofactors;
@@ -86,8 +83,7 @@ public class PrintPaths2 implements KeyListener {
         this.dataset = dataset;
         CofactorConfParameters conf = new CofactorConfParameters();
         this.cofactors = conf.getParameter(CofactorConfParameters.cofactors).getValue();
-        this.m = dataset.getDocument().getModel();
-        this.clusters = new HashMap<>();
+        this.m = dataset.getDocument().getModel();       
         this.selectedNode = new ArrayList<>();
         this.popupMenu = new JPopupMenu();
 
@@ -100,25 +96,40 @@ public class PrintPaths2 implements KeyListener {
         List<AntEdge> edges = graph.getEdges();
         colors = new HashMap<>();
 
-        nodes.stream().filter((node) -> (node != null)).forEachOrdered((node) -> {
-            String name = node.getCompleteId();
-            String n = name.split(" - ")[0];
-            String r = name.split(" : ")[0];
-            g.addNode(name);
-            if (node.getColor() != null) {
-                colors.put(name, node.getColor());
-            }
-            Node gNode = g.getNode(name);
-            if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
-                gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
-                gNode.addAttribute("ui.label", r);
-            } else if (this.cofactors.contains(r)) {
-                gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                gNode.addAttribute("ui.label", n);
-            } else {
-                gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                gNode.addAttribute("ui.label", n);
-
+        nodes.stream().filter((node) -> (node != null)).forEachOrdered(new Consumer<AntNode>() {
+            @Override
+            public void accept(AntNode node) {
+                String name = node.getCompleteId();
+                String n = name.split(" - ")[0];
+                String r = name.split(" : ")[0];
+                String rlabel = r + " : " + PrintPaths2.this.dataset.getFlux(r);
+                g.addNode(name);
+                if (node.getColor() != null) {
+                    colors.put(name, node.getColor());
+                }
+                Node gNode = g.getNode(name);
+                Color c = node.getColor();
+                //System.out.println(c);
+                if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
+                    gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
+                    gNode.addAttribute("ui.label", rlabel);
+                } else if (PrintPaths2.this.cofactors.contains(r)) {
+                    if (c == null) {
+                        c = Color.pink;
+                    }
+                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                    //System.out.println(hex);
+                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
+                    gNode.addAttribute("ui.label", n);
+                } else {
+                    if (c == null) {
+                        c = Color.orange;
+                    }
+                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                   // System.out.println(hex);
+                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+                    gNode.addAttribute("ui.label", n);
+                }
             }
         });
         edges.stream().filter((edge) -> (edge != null)).forEachOrdered((edge) -> {
@@ -448,14 +459,26 @@ public class PrintPaths2 implements KeyListener {
                     selectedNode.remove(sourceLine);
                     String n = sourceLine.split(" - ")[0];
                     String r = sourceLine.split(" : ")[0];
+                    String rlabel = r + " : " + dataset.getFlux(r);
+                    Color c = colors.get(sourceLine);
                     if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
                         gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
-                        gNode.addAttribute("ui.label", r);
+                        gNode.addAttribute("ui.label", rlabel);
                     } else if (cofactors.contains(r)) {
-                        gNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
+                        if (c == null) {
+                            c = Color.pink;
+                        }
+                        String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                      //  System.out.println(hex);
+                        gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
                         gNode.addAttribute("ui.label", n);
                     } else {
-                        gNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+                        if (c == null) {
+                            c = Color.orange;
+                        }
+                        String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                       // System.out.println(hex);
+                        gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
                         gNode.addAttribute("ui.label", n);
 
                     }
@@ -590,6 +613,7 @@ public class PrintPaths2 implements KeyListener {
     public void keyTyped(KeyEvent e) {
         if (e.getKeyChar() == '\u0008' || e.getKeyChar() == '\u007F') {
             this.selectedNode.forEach((nodeId) -> {
+                System.out.println(nodeId);
                 try {
                     Node node = g.getNode(nodeId);
                     g.removeNode(node);
@@ -604,6 +628,7 @@ public class PrintPaths2 implements KeyListener {
 
                     this.antGraph.removeNode(name);
                 } catch (Exception ex) {
+                    System.out.println(ex.toString());
                 }
             });
         }
@@ -733,8 +758,10 @@ public class PrintPaths2 implements KeyListener {
                     }
                     // adds the new reaction to the visualization graph
                     Node rNode = g.addNode(reactionName);
+                    String rlabel = r.getId() + " : " + dataset.getFlux(r.getId());
+
                     rNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
-                    rNode.addAttribute("ui.label", reactionName);
+                    rNode.addAttribute("ui.label", rlabel);
 
                     // Creates the node for the ANT graph
                     AntNode reactionNode = new AntNode(reactionName);

@@ -159,31 +159,8 @@ public class GetInfoAndTools {
                 b.put(reactionName, data);
                 
                 Reaction r = m.getReaction(reactionName);
-                if (r != null && r.getKineticLaw() == null) {
-                    KineticLaw law = r.createKineticLaw();
-                    LocalParameter lbound = law.createLocalParameter();
-                    lbound.setId("LOWER_BOUND");
-                    lbound.setValue(Double.valueOf(data[3]));
-                    //law.addParameter(lbound);
-                    LocalParameter ubound = law.createLocalParameter();
-                    ubound.setId("UPPER_BOUND");
-                    ubound.setValue(Double.valueOf(data[4]));
-                    //law.addParameter(ubound);
-                    r.setKineticLaw(law);
-                } else if (r != null) {
-                    FBCReactionPlugin plugin = new FBCReactionPlugin(r);
-                    if(Double.valueOf(data[3]) == 0){
-                        plugin.setLowerFluxBound("cobra_0_bound");
-                    }else if(Double.valueOf(data[3]) < 0){
-                        plugin.setLowerFluxBound("cobra_defauld_lb");
-                    }
-                    if(Double.valueOf(data[4]) == 0){
-                        plugin.setUpperFluxBound("cobra_0_bound");
-                    }else if(Double.valueOf(data[4]) > 0){
-                        plugin.setUpperFluxBound("cobra_defauld_ub");
-                    }    
-                    
-                }
+                networkDS.setLowerBound(r.getId(), Double.valueOf(data[3]));
+                networkDS.setUpperBound(r.getId(), Double.valueOf(data[4]));               
             }
         } catch (FileNotFoundException ex) {
             System.out.println("No bounds added to the reactions");
@@ -245,7 +222,7 @@ public class GetInfoAndTools {
     
     private boolean isInGraph(String id, AntGraph graph) {
         for (AntNode n : graph.getNodes()) {
-            if (n.getId().contains(id)) {
+            if (n.getId().equals(id)) {
                 return true;
             }
         }

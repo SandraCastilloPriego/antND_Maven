@@ -359,7 +359,6 @@ public class SimpleBasicDataset implements Dataset {
         this.document = document;
         Model model = this.document.getModel();
         for (Reaction r : model.getListOfReactions()) {
-
             if (r.getKineticLaw() != null) {
                 LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
                 if (lp == null) {
@@ -383,6 +382,7 @@ public class SimpleBasicDataset implements Dataset {
                 Parameter lp = plugin.getUpperFluxBoundInstance();
                 this.setUpperBound(r.getId(), lp.getValue());
             }
+            this.setFlux(r.getId(), 0.0);
         }
     }
 

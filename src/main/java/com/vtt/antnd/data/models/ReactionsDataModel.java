@@ -244,6 +244,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
                 case "Objective":
                     try {
+                        
                         FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
 
                         FluxObjective fx = new FluxObjective();

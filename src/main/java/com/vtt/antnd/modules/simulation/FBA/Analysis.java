@@ -24,7 +24,7 @@ public abstract class Analysis {
     protected void setVars() {
         for (ReactionFA r : reactionsList) {
             String varName = Integer.toString(this.reactionPositionMap.get(r.getId()));
-            System.out.println(r.getId() + ": " + varName + ": " + r.getlb() + " ," + r.getub());            
+            //System.out.println(r.getId() + ": " + varName + ": " + r.getlb() + " ," + r.getub());            
             this.getSolver().setVar(varName, VarType.CONTINUOUS, r.getlb(), r.getub());
 
         }
@@ -150,7 +150,7 @@ public abstract class Analysis {
                     this.metabolitesList.add(product);
                 }
             }
-            System.out.println(r.getId()+" - " +r.getObjective());
+           //System.out.println(r.getId()+" - " +r.getObjective());
             this.objectiveList.add(r.getObjective());
             this.reactionPositionMap.put(r.getId(), i++);
         }

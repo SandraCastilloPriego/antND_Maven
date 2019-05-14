@@ -172,15 +172,13 @@ public abstract class Analysism {
             }*/
             this.reactionsList.add(r);
 
-            for (String reactant : r.getReactants()) {
-                String sp = model.getSpecies(reactant).getName();
-                if (!metabolitesList.contains(reactant)&& !sp.contains("boundary") && !sp.contains("b_")&& !sp.contains("_e")) {
+            for (String reactant : r.getReactants()) {                
+                if (!model.getSpecies(reactant).getBoundaryCondition()) {
                     this.metabolitesList.add(reactant);
                 }
             }
-            for (String product : r.getProducts()) {
-                String sp = model.getSpecies(product).getName();
-                if (!metabolitesList.contains(product) && !sp.contains("boundary") && !sp.contains("b_")&& !sp.contains("_e")) {
+            for (String product : r.getProducts()) {               
+                if (!model.getSpecies(product).getBoundaryCondition()) {
                     this.metabolitesList.add(product);
                 }
             }

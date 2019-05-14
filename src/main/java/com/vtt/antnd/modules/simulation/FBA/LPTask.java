@@ -34,13 +34,11 @@ import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
-import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
 import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 import org.sbml.jsbml.ext.fbc.FluxObjective;
 import org.sbml.jsbml.ext.fbc.Objective;
 
@@ -93,19 +91,18 @@ public class LPTask extends AbstractTask {
             this.networkDS.addInfo(info);
             this.networkDS.setReactionsFA(reactions);
             newDataset.addInfo(this.networkDS.getInfo().getText());
+            this.setFluxes(newDataset);
         }
+
         finishedPercentage = 1f;
         setStatus(TaskStatus.FINISHED);
     }
 
     public void resetFluxes(Model model) {
-        ListOf reactions = model.getListOfReactions();
-        for (int i = 0; i < reactions.size(); i++) {
+
+        for (Reaction r : model.getListOfReactions()) {
             try {
-                Reaction reaction = (Reaction) reactions.get(i);
-                KineticLaw law = reaction.getKineticLaw();
-                LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
-                flux.setValue(0.0);
+                this.networkDS.setFlux(r.getId(), 0.0);
             } catch (Exception ex) {
 
             }
@@ -127,52 +124,40 @@ public class LPTask extends AbstractTask {
     private AntGraph createGraph() {
         Model m = this.networkDS.getDocument().getModel();
         AntGraph g = new AntGraph(null, null);
-        for (String r : reactions.keySet()) {
-            ReactionFA reaction = reactions.get(r);
-            if (reaction != null && Math.abs(reaction.getFlux()) > 0.000001) {
-                AntNode reactionNode = new AntNode(reaction.getId(), String.format("%.3g%n", reaction.getFlux()));
+        for (Reaction r : m.getListOfReactions()) {           
+            if (this.networkDS.getFlux(r.getId()) > 0.0000001) {
+                AntNode reactionNode = new AntNode(r.getId(), String.format("%.3g%n", this.networkDS.getFlux(r.getId())));
                 g.addNode2(reactionNode);
-                Reaction modelReaction = m.getReaction(r);
-                if (modelReaction != null) {
-                    LocalParameter parameter = modelReaction.getKineticLaw().getLocalParameter("FLUX_VALUE");
-                    if (parameter == null) {
-                        LocalParameter p = modelReaction.getKineticLaw().createLocalParameter();
-                        p.setId("FLUX_VALUE");
-                        p.setValue(reaction.getFlux());
-                    } else {
-                        parameter.setValue(reaction.getFlux());
-                    }
-                }
 
-                for (String reactant : reaction.getReactants()) {
-                    String name = m.getSpecies(reactant).getName();
-                    AntNode reactantNode = g.getNode(reactant);
+                for (SpeciesReference reactant : r.getListOfReactants()) {
+                    Species species = reactant.getSpeciesInstance();
+                    AntNode reactantNode = g.getNode(species.getId());
                     if (reactantNode == null) {
-                        reactantNode = new AntNode(reactant, name);
+                        reactantNode = new AntNode(species.getId(), species.getName());
                     }
                     g.addNode2(reactantNode);
                     AntEdge e = null;
-                    if (reaction.getFlux() > 0) {
+                    //if (this.networkDS.getFlux(r.getId())  > 0.0001) {
                         e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
-                    } else {
+                    /*} else {
                         e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
-                    }
+                    }*/
 
                     g.addEdge(e);
                 }
-                for (String product : reaction.getProducts()) {
-                    String name = m.getSpecies(product).getName();
-                    AntNode reactantNode = g.getNode(product);
+                for (SpeciesReference product : r.getListOfProducts()) {
+                    Species species = product.getSpeciesInstance();
+                    AntNode reactantNode = g.getNode(species.getId());
                     if (reactantNode == null) {
-                        reactantNode = new AntNode(product, name);
+                        reactantNode = new AntNode(species.getId(), species.getName());
                     }
                     g.addNode2(reactantNode);
                     AntEdge e = null;
-                    if (reaction.getFlux() > 0) {
+                   // if (this.networkDS.getFlux(r.getId()) > 0.0001) {
                         e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
-                    } else {
+                    /*} else {
                         e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
-                    }
+                    }*/
 
                     g.addEdge(e);
                 }
@@ -188,7 +173,11 @@ public class LPTask extends AbstractTask {
             Map<String, Double> soln = fba.run();
             for (String r : soln.keySet()) {
                 if (this.reactions.containsKey(r)) {
-                    this.reactions.get(r).setFlux(soln.get(r));
+                    double flux =soln.get(r);
+                    if(flux < 0.000001)
+                        flux = 0.0;
+                    this.reactions.get(r).setFlux(flux);
+                    this.networkDS.setFlux(r, flux);
                 }
             }
         } catch (Exception ex) {
@@ -227,28 +216,17 @@ public class LPTask extends AbstractTask {
 
             try {
                 KineticLaw law = r.getKineticLaw();
-                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
                 LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
                 // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
                 reaction.setObjective(objective.getValue());
-                reaction.setBounds(lbound.getValue(), ubound.getValue());
             } catch (Exception ex) {
-                try {
-                    FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                    Parameter lbp = plugin.getLowerFluxBoundInstance();
-                    Parameter ubp = plugin.getUpperFluxBoundInstance();
-                    reaction.setBounds(lbp.getValue(), ubp.getValue());
-                } catch (NullPointerException n) {
-                    reaction.setBounds(-1000, 1000);
-                }
                 try {
                     reaction.setObjective(getObjectiveFBC(r.getId(), m));
                 } catch (Exception ex2) {
                     reaction.setObjective(0.0);
                 }
             }
-
+            reaction.setBounds(this.networkDS.getLowerBound(r.getId()), this.networkDS.getUpperBound(r.getId()));
             ListOf spref = r.getListOfReactants();
             for (int e = 0; e < spref.size(); e++) {
                 SpeciesReference s = (SpeciesReference) spref.get(e);
@@ -266,6 +244,12 @@ public class LPTask extends AbstractTask {
             }
 
             this.reactions.put(r.getId(), reaction);
+        }
+    }
+
+    private void setFluxes(Dataset newDataset) {
+        for (String reaction : this.reactions.keySet()) {
+            newDataset.setFlux(reaction, this.reactions.get(reaction).getFlux());
         }
     }
 
