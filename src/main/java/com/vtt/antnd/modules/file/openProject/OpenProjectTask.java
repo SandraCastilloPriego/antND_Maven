@@ -148,7 +148,17 @@ public class OpenProjectTask extends AbstractTask {
                     String strLine;
                     AntGraph g = null;
                     while ((strLine = br.readLine()) != null) {
-                        if (strLine.contains("Is Parent")) {
+                        if(strLine.contains("Fluxes=")){
+                            String fluxes = strLine.split("=")[1];
+                            String name = null;                           
+                            if (fluxes.contains(" // ")) {
+                                String[] properties = fluxes.split(" // ");
+                                name = properties[0];
+                                String flux = properties[1];
+                                data.setFlux(name, Double.valueOf(flux));
+                            }
+                            
+                        }else if (strLine.contains("Is Parent")) {
                             data.setIsParent(true);
                         } else if (strLine.contains("Not Parent")) {
                             data.setIsParent(false);

@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.desktop.impl;
 
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.desktop.Desktop;
 import com.vtt.antnd.main.NDCore;
@@ -46,8 +45,14 @@ import javax.swing.event.ListSelectionListener;
 import javax.xml.stream.XMLStreamException;
 import org.freehep.graphics2d.VectorGraphics;
 import org.freehep.graphicsio.pdf.PDFGraphics2D;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLException;
 import org.sbml.jsbml.SBMLWriter;
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
+import org.sbml.jsbml.ext.fbc.Objective.Type;
 
 /**
  * This class implements a selector of data sets
@@ -55,7 +60,7 @@ import org.sbml.jsbml.SBMLWriter;
  * @author Taken from MZmine2 http://mzmine.sourceforge.net/
  */
 public class ItemSelector extends JPanel implements ActionListener,
-    MouseListener, ListSelectionListener {
+        MouseListener, ListSelectionListener {
 
     public static final String DATA_FILES_LABEL = "SBML Files";
     private final DragOrderedJList DatasetFiles;
@@ -292,15 +297,13 @@ public class ItemSelector extends JPanel implements ActionListener,
                 pn.add(cancel);
                 accept.addActionListener(new ActionListener() {
                     @Override
-                    public void actionPerformed(ActionEvent e) {     
-                        SBMLWriter writer     = new SBMLWriter();                     
-                        try {                      
-                            writer.writeSBML(file.getDocument(), new File(field.getText()));
-                        } catch (XMLStreamException ex) {
-                            Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
-                        } catch (SBMLException ex) {
-                            Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
-                        } catch (IOException ex) {
+                    public void actionPerformed(ActionEvent e) {
+
+                        try {
+                            setObjective(file);
+                            file.getDocument().removeDeclaredNamespaceByNamespace(file.getDocument().getNamespace());
+                            SBMLWriter.write(file.getDocument(), field.getText(), "AntND", "1.0");
+                        } catch (XMLStreamException | SBMLException | IOException ex) {
                             Logger.getLogger(ItemSelector.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         frame.doDefaultCloseAction();
@@ -321,31 +324,91 @@ public class ItemSelector extends JPanel implements ActionListener,
 
     }
 
+    private void removeObjective(String id, Model model) {
+        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+        for (Objective obj : plugin.getListOfObjectives()) {
+            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                if (fobj.getReaction().equals(id)) {
+                    obj.removeFluxObjective(fobj);
+                    break;
+                }
+            }
+        }
+
+    }
+
+    private void setObjective(Dataset data) {
+        Model m = data.getDocument().getModel();
+        for (Reaction r : m.getListOfReactions()) {
+            Double objval = data.getObjective(r.getId());
+            if (objval != null && objval != 0) {
+                removeObjective(r.getId(), m);
+                FBCModelPlugin plugin = (FBCModelPlugin) m.getPlugin("fbc");
+                if (plugin != null) {
+                    FluxObjective fx = new FluxObjective();
+                    fx.setReaction(r);
+                    fx.setCoefficient(objval);
+                    Type type = Objective.Type.MAXIMIZE;
+                    if (objval < 0) {
+                        type = Objective.Type.MINIMIZE;
+                    }
+                    Objective objf = null;
+                    for (Objective obj : plugin.getListOfObjectives()) {
+                        for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                            if (fobj.getReaction().equals(r.getId())) {
+                                fobj.setCoefficient(objval);
+                                objf = obj;
+                                break;
+                            }
+                        }
+                    }
+                    if (objf == null) {
+                        objf = plugin.createObjective("obj" + r.getId(), type);
+                        objf.addFluxObjective(fx);
+                        plugin.setActiveObjective(objf);
+                    }
+                }
+            } else if (objval != null) {
+
+                FBCModelPlugin plugin = new FBCModelPlugin(m);
+                Type type = Objective.Type.MAXIMIZE;
+                if (objval < 0) {
+                    type = Objective.Type.MINIMIZE;
+                }
+                Objective obj = plugin.createObjective("obj" + r.getId(), type);
+                FluxObjective fx = new FluxObjective();
+                fx.setReaction(r);
+                fx.setCoefficient(objval);
+                obj.addFluxObjective(fx);
+                plugin.setActiveObjective(obj);
+
+            }
+        }
+    }
+
     private void visualize() {
         Dataset[] selectedFiles = getSelectedDatasets();
 
         for (Dataset file : selectedFiles) {
             JInternalFrame frame = new JInternalFrame(file.getDatasetName(), true, true, true, true);
-           // JPanel pn = new JPanel();
+            // JPanel pn = new JPanel();
             //JScrollPane panel = new JScrollPane(pn);
 
             //
             //frame.add(panel);
-           // panel.add(pn);
-           // NDCore.getDesktop().addInternalFrame(frame);
-
+            // panel.add(pn);
+            // NDCore.getDesktop().addInternalFrame(frame);
             PrintPaths2 print = new PrintPaths2(file);
-           // try {
+            // try {
 
-                System.out.println("Visualize");                
-                frame.add(print.printPathwayInFrame(file.getGraph()));
-            
-           
+            System.out.println("Visualize");
+            frame.add(print.printPathwayInFrame(file.getGraph()));
+
             NDCore.getDesktop().addInternalFrame(frame);
             frame.pack();
             //} catch (NullPointerException ex) {
             //    System.out.println(ex.toString());
-           // }
+            // }
         }
     }
 
@@ -365,7 +428,7 @@ public class ItemSelector extends JPanel implements ActionListener,
                     g = new PDFGraphics2D(new File("Output.pdf"), new Dimension(2400, 1900));
                     g.setProperties(p);
                     g.startExport();
-                   // vv.print(g);
+                    // vv.print(g);
                     g.endExport();
                 } catch (IOException ex) {
 
@@ -378,7 +441,7 @@ public class ItemSelector extends JPanel implements ActionListener,
     }
 
     private void combine() {
-       // CombineModelsModule combine = new CombineModelsModule();
+        // CombineModelsModule combine = new CombineModelsModule();
         //combine.runModule(null);
     }
 
@@ -451,14 +514,14 @@ public class ItemSelector extends JPanel implements ActionListener,
         Dataset[] selectedFiles = getSelectedDatasets();
         for (Dataset file : selectedFiles) {
             if (file != null && !file.isParent()) {
-                 ReportFBAParameters parameters = new ReportFBAParameters();
-                 if (NDCore.getDesktop().getParameteresReport() != null) {
-                 parameters.getParameter(ReportFBAParameters.fileName).setValue(NDCore.getDesktop().getParameteresReport());
-                 }
-                 ExitCode exit = parameters.showSetupDialog();
+                ReportFBAParameters parameters = new ReportFBAParameters();
+                if (NDCore.getDesktop().getParameteresReport() != null) {
+                    parameters.getParameter(ReportFBAParameters.fileName).setValue(NDCore.getDesktop().getParameteresReport());
+                }
+                ExitCode exit = parameters.showSetupDialog();
                 // if (exit == ExitCode.OK) {
-             //   ReportFBATask task = new ReportFBATask(file, null);
-              //  task.run();
+                //   ReportFBATask task = new ReportFBATask(file, null);
+                //  task.run();
                 //   NDCore.getDesktop().setParameteresReport(parameters.getParameter(ReportFBAParameters.fileName).getValue());
                 //}
             }
@@ -469,8 +532,8 @@ public class ItemSelector extends JPanel implements ActionListener,
         Dataset[] selectedFiles = getSelectedDatasets();
 
         for (Dataset file : selectedFiles) {
-          //  VisualizeCofactorsTask VC = new VisualizeCofactorsTask(file, null);
-           // VC.run();
+            //  VisualizeCofactorsTask VC = new VisualizeCofactorsTask(file, null);
+            // VC.run();
         }
     }
 
@@ -513,33 +576,32 @@ public class ItemSelector extends JPanel implements ActionListener,
                     }
                 }
                 System.out.println(newName);
-                
-                if(!newName.contains(".sbml") && !newName.contains(".xml")){
+
+                if (!newName.contains(".sbml") && !newName.contains(".xml")) {
                     //correct = false;
-                     //NDCore.getDesktop().displayErrorMessage("The name must end with \".sbml\" or \".xml\"");                    
-                    newName = newName+".sbml";
+                    //NDCore.getDesktop().displayErrorMessage("The name must end with \".sbml\" or \".xml\"");                    
+                    newName = newName + ".sbml";
                 }
 
                 if (correct) {
-                    for(Dataset data : DatasetFilesModel){
-                        if(data.getParent()!= null && data.getParent().equals(oldName)){
+                    for (Dataset data : DatasetFilesModel) {
+                        if (data.getParent() != null && data.getParent().equals(oldName)) {
                             data.setParent(newName);
                         }
                     }
-                   // int index = DatasetNamesModel.indexOf(newName);
-                   // DatasetNamesModel.setElementAt(newName, index);
+                    // int index = DatasetNamesModel.indexOf(newName);
+                    // DatasetNamesModel.setElementAt(newName, index);
                     DatasetNamesModel.addElement(newName);
                     selectedFile.setDatasetName(newName);
                     DatasetFiles.updateUI();
                     DatasetNamesModel.removeElement(oldName);
                     selectedFile.addInfo("The name of the file has been changed from: " + oldName + " to: " + newName);
-                     frame.doDefaultCloseAction();
+                    frame.doDefaultCloseAction();
                 } else {
-                   label.setText("This name is already used. Choose another one:");
+                    label.setText("This name is already used. Choose another one:");
                 }
 
                 //
-               
             }
         });
 

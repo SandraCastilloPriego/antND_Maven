@@ -131,17 +131,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                     }
 
                 case "Objective":
-                    if (r.getKineticLaw() != null) {
-                        LocalParameter lp = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
-                        if (lp != null) {
-                            return lp.getValue();
-                        } else {
-                            return this.getObjectiveFBC(r.getId(), model);
-                        }
-                    } else {
-
-                        return 0.0;
-                    }
+                    return this.dataset.getObjective(r.getId());
                 case "Fluxes":
                     return this.dataset.getFlux(r.getId());
 
@@ -151,22 +141,6 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private double getObjectiveFBC(String r, Model model) {
-        try {
-            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
-            for (Objective obj : plugin.getListOfObjectives()) {
-                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
-                    if (fobj.getReaction().equals(r)) {
-                        return fobj.getCoefficient();
-                    }
-                }
-            }
-        } catch (NullPointerException n) {
-            return 0.0;
-        }
-        return 0.0;
     }
 
     @Override
@@ -242,57 +216,10 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
             }
             return;
 
-            case "Objective":
-                try {
-                    if (Double.valueOf(aValue.toString()) == 0.0) {
-                        removeObjective(r.getId(), model);
-                    } else {
-                        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
-
-                        FluxObjective fx = new FluxObjective();
-                        fx.setReaction(r);
-                        fx.setCoefficient(Double.valueOf(aValue.toString()));
-                        Type type = Objective.Type.MAXIMIZE;
-                        if (Double.valueOf(aValue.toString()) < 0) {
-                            type = Objective.Type.MINIMIZE;
-                        }
-                        Objective objf = null;
-                        for (Objective obj : plugin.getListOfObjectives()) {
-                            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
-                                if (fobj.getReaction().equals(r.getId())) {
-                                    fobj.setCoefficient(Double.valueOf(aValue.toString()));
-                                    objf = obj;
-                                    break;
-                                }
-                            }
-                        }
-                        if (objf == null) {
-                            objf = plugin.createObjective("obj" + r.getId(), type);
-                            objf.addFluxObjective(fx);
-                            plugin.setActiveObjective(objf);
-                        }
-
-                    }
-                } catch (NullPointerException n) {
-                    if (Double.valueOf(aValue.toString()) != 0.0) {
-
-                        System.out.println("there is no FBCPlugin");
-                        FBCModelPlugin plugin = new FBCModelPlugin(model);
-                        Type type = Objective.Type.MAXIMIZE;
-                        if (Double.valueOf(aValue.toString()) < 0) {
-                            type = Objective.Type.MINIMIZE;
-                        }
-                        Objective obj = plugin.createObjective("obj" + r.getId(), type);
-                        FluxObjective fx = new FluxObjective();
-                        fx.setReaction(r);
-                        fx.setCoefficient(Double.valueOf(aValue.toString()));
-                        obj.addFluxObjective(fx);
-                        plugin.setActiveObjective(obj);
-                    }
-                }
-
-                //    info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + parameter.getValue() + " to " + aValue.toString();
-                //   dataset.addInfo(info);                   
+            case "Objective":                
+                info = info + "\n- Objective coefficient of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + this.dataset.getObjective(r.getId()) + " to " + aValue.toString();
+                this.dataset.setObjective(r.getId(), Double.valueOf(aValue.toString()));
+                dataset.addInfo(info);
                 return;
             case "Fluxes":
                 info = info + "\n- Flux of the reaction " + r.getId() + " - " + r.getName() + " has changed from " + this.dataset.getFlux(r.getId()) + " to " + aValue.toString();
@@ -415,16 +342,5 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
         return this.dataset;
     }
 
-    private void removeObjective(String id, Model model) {
-        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
-        for (Objective obj : plugin.getListOfObjectives()) {
-            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
-                if (fobj.getReaction().equals(id)) {
-                    obj.removeFluxObjective(fobj);
-                    break;
-                }
-            }
-        }
-
-    }
+    
 }

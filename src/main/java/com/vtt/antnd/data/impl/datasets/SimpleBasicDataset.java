@@ -38,7 +38,10 @@ import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
 import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
 
 /**
  * Basic data set implementation.
@@ -63,6 +66,7 @@ public class SimpleBasicDataset implements Dataset {
     private HashMap<String, Double> lb;
     private HashMap<String, Double> ub;
     private HashMap<String, Double> fluxes;
+    private HashMap<String, Double> objective;
     private HashMap<String, SpeciesFA> compounds;
     private List<String> cofactors;
     private Map<String, Double[]> sourcesMap;
@@ -84,6 +88,7 @@ public class SimpleBasicDataset implements Dataset {
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
         this.fluxes = new HashMap<>();
+        this.objective = new HashMap<>();
         this.lb = new HashMap<>();
         this.ub = new HashMap<>();
     }
@@ -95,6 +100,7 @@ public class SimpleBasicDataset implements Dataset {
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
         this.fluxes = new HashMap<>();
+        this.objective = new HashMap<>();
         this.lb = new HashMap<>();
         this.ub = new HashMap<>();
     }
@@ -358,32 +364,54 @@ public class SimpleBasicDataset implements Dataset {
     public void setDocument(SBMLDocument document) {
         this.document = document;
         Model model = this.document.getModel();
-        for (Reaction r : model.getListOfReactions()) {
+        for (Reaction r : model.getListOfReactions()) { 
             if (r.getKineticLaw() != null) {
+                LocalParameter lpobj = r.getKineticLaw().getLocalParameter("OBJECTIVE_COEFFICIENT");
+                if (lpobj != null) {
+                    this.objective.put(r.getId(), lpobj.getValue());
+                } else {
+                    this.objective.put(r.getId(), this.getObjectiveFBC(r.getId(), model));
+                }
                 LocalParameter lp = r.getKineticLaw().getLocalParameter("LOWER_BOUND");
                 if (lp == null) {
                     lp = r.getKineticLaw().getLocalParameter("LB_" + r.getId());
                 }
                 this.setLowerBound(r.getId(), lp.getValue());
-            } else {
-                FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                Parameter lp = plugin.getLowerFluxBoundInstance();
-                this.setLowerBound(r.getId(), lp.getValue());
-            }
-
-            if (r.getKineticLaw() != null) {
-                LocalParameter lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
+                
+                lp = r.getKineticLaw().getLocalParameter("UPPER_BOUND");
                 if (lp == null) {
                     lp = r.getKineticLaw().getLocalParameter("UB_" + r.getId());
                 }
                 this.setUpperBound(r.getId(), lp.getValue());
             } else {
+                this.objective.put(r.getId(), this.getObjectiveFBC(r.getId(), model));
                 FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
-                Parameter lp = plugin.getUpperFluxBoundInstance();
+                Parameter lp = plugin.getLowerFluxBoundInstance();
+                this.setLowerBound(r.getId(), lp.getValue());
+                
+                plugin = (FBCReactionPlugin) r.getPlugin("fbc");
+                lp = plugin.getUpperFluxBoundInstance();
                 this.setUpperBound(r.getId(), lp.getValue());
             }
+
             this.setFlux(r.getId(), 0.0);
         }
+    }
+
+    private double getObjectiveFBC(String r, Model model) {
+        try {
+            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+            for (Objective obj : plugin.getListOfObjectives()) {
+                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                    if (fobj.getReaction().equals(r)) {
+                        return fobj.getCoefficient();
+                    }
+                }
+            }
+        } catch (NullPointerException n) {
+            return 0.0;
+        }
+        return 0.0;
     }
 
     @Override
@@ -528,6 +556,19 @@ public class SimpleBasicDataset implements Dataset {
         }
         this.ub.put(reaction, bound);
 
+    }
+
+    @Override
+    public void setObjective(String reaction, Double obj) {
+        if (this.objective == null) {
+            this.objective = new HashMap<>();
+        }
+        this.objective.put(reaction, obj);
+    }
+
+    @Override
+    public Double getObjective(String reaction) {
+        return this.objective.get(reaction);
     }
 
 }

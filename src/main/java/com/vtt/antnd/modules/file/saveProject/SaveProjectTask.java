@@ -36,15 +36,20 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.stream.XMLStreamException;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLException;
 import org.sbml.jsbml.SBMLWriter;
-
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.Objective;
 
 /**
  *
@@ -86,7 +91,7 @@ public class SaveProjectTask extends AbstractTask {
             tempFile.deleteOnExit();
             // Create a ZIP stream writing to the temporary file
             FileOutputStream tempStream = new FileOutputStream(tempFile);
-            try (ZipOutputStream zipStream = new ZipOutputStream(tempStream)) {
+            try ( ZipOutputStream zipStream = new ZipOutputStream(tempStream)) {
                 saveSBMLFiles(zipStream);
                 saveHistory(zipStream);
                 //savePaths(zipStream);
@@ -115,14 +120,19 @@ public class SaveProjectTask extends AbstractTask {
                 File tempFile = File.createTempFile(datafile.getDatasetName(), ".tmp");
                 SBMLWriter writer = new SBMLWriter();
                 try {
-                    writer.writeSBML(datafile.getDocument(), new File(tempFile.getAbsolutePath()));
-                } catch (XMLStreamException ex) {
-                    Logger.getLogger(SaveProjectTask.class.getName()).log(Level.SEVERE, null, ex);
+                    OutputStream out = new FileOutputStream(new File(tempFile.getAbsolutePath()));
+                    try {
+                        this.setObjective(datafile);
+                        datafile.getDocument().removeDeclaredNamespaceByNamespace(datafile.getDocument().getNamespace());
+                        writer.writeSBMLToFile(datafile.getDocument(), tempFile.getAbsolutePath());
+                    } catch (FileNotFoundException | XMLStreamException ex) {
+                        Logger.getLogger(SaveProjectTask.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 } catch (SBMLException ex) {
                     Logger.getLogger(SaveProjectTask.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
-                try (FileInputStream fileStream = new FileInputStream(tempFile)) {
+                try ( FileInputStream fileStream = new FileInputStream(tempFile)) {
                     StreamCopy copyMachine = new StreamCopy();
                     copyMachine.copy(fileStream, zipStream);
                 }
@@ -149,6 +159,12 @@ public class SaveProjectTask extends AbstractTask {
             BufferedWriter writer = null;
             // try {
             writer = new BufferedWriter(new FileWriter(tempFile.getAbsoluteFile()));
+
+            // write fluxes          
+            for (Reaction r : datafile.getDocument().getModel().getListOfReactions()) {
+                writer.write("\nFluxes=" + r.getId() + " // " + datafile.getFlux(r.getId()));
+            }
+            writer.write("\n");
             if (isParent) {
                 writer.write("Is Parent");
             } else {
@@ -164,7 +180,7 @@ public class SaveProjectTask extends AbstractTask {
                 }
             }
             if (graph != null) {
-                System.out.println("Graph"+ graph.getNodes().size());
+                System.out.println("Graph" + graph.getNodes().size());
                 for (AntNode node : graph.getNodes()) {
                     try {
                         String name = " ";
@@ -182,7 +198,7 @@ public class SaveProjectTask extends AbstractTask {
                             }
                         } else {
                             try {
-                               // System.out.print("No position in Nodes" + node.getId());
+                                // System.out.print("No position in Nodes" + node.getId());
                                 writer.write("\nNodes= " + node.getId() + " : " + name + " // null");
                             } catch (Exception eere) {
                                 System.out.println("Node missing");
@@ -211,7 +227,7 @@ public class SaveProjectTask extends AbstractTask {
             //   }
             //}
 
-            try (FileInputStream fileStream = new FileInputStream(tempFile)) {
+            try ( FileInputStream fileStream = new FileInputStream(tempFile)) {
                 StreamCopy copyMachine = new StreamCopy();
                 copyMachine.copy(fileStream, zipStream);
             }
@@ -252,7 +268,7 @@ public class SaveProjectTask extends AbstractTask {
                     }
                 }
 
-                try (FileInputStream fileStream = new FileInputStream(tempFile)) {
+                try ( FileInputStream fileStream = new FileInputStream(tempFile)) {
                     StreamCopy copyMachine = new StreamCopy();
                     copyMachine.copy(fileStream, zipStream);
                 }
@@ -262,4 +278,65 @@ public class SaveProjectTask extends AbstractTask {
         }
     }
 
+    private void removeObjective(String id, Model model) {
+        FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
+        for (Objective obj : plugin.getListOfObjectives()) {
+            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                if (fobj.getReaction().equals(id)) {
+                    obj.removeFluxObjective(fobj);
+                    break;
+                }
+            }
+        }
+
+    }
+
+    private void setObjective(Dataset data) {
+        Model m = data.getDocument().getModel();
+        for (Reaction r : m.getListOfReactions()) {
+            Double objval = data.getObjective(r.getId());
+            if (objval != null && objval != 0) {
+                removeObjective(r.getId(), m);
+                FBCModelPlugin plugin = (FBCModelPlugin) m.getPlugin("fbc");
+                if (plugin != null) {
+                    FluxObjective fx = new FluxObjective();
+                    fx.setReaction(r);
+                    fx.setCoefficient(objval);
+                    Objective.Type type = Objective.Type.MAXIMIZE;
+                    if (objval < 0) {
+                        type = Objective.Type.MINIMIZE;
+                    }
+                    Objective objf = null;
+                    for (Objective obj : plugin.getListOfObjectives()) {
+                        for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                            if (fobj.getReaction().equals(r.getId())) {
+                                fobj.setCoefficient(objval);
+                                objf = obj;
+                                break;
+                            }
+                        }
+                    }
+                    if (objf == null) {
+                        objf = plugin.createObjective("obj" + r.getId(), type);
+                        objf.addFluxObjective(fx);
+                        plugin.setActiveObjective(objf);
+                    }
+                }
+            } else if (objval != null) {
+
+                FBCModelPlugin plugin = new FBCModelPlugin(m);
+                Objective.Type type = Objective.Type.MAXIMIZE;
+                if (objval < 0) {
+                    type = Objective.Type.MINIMIZE;
+                }
+                Objective obj = plugin.createObjective("obj" + r.getId(), type);
+                FluxObjective fx = new FluxObjective();
+                fx.setReaction(r);
+                fx.setCoefficient(objval);
+                obj.addFluxObjective(fx);
+                plugin.setActiveObjective(obj);
+
+            }
+        }
+    }
 }

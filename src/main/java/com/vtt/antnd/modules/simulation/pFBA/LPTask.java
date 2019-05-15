@@ -31,9 +31,7 @@ import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;
 import java.util.HashMap;
 import java.util.Map;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
@@ -278,19 +276,8 @@ public class LPTask extends AbstractTask {
         for (int i = 0; i < reactions.size(); i++) {
             Reaction r = (Reaction) reactions.get(i);
             ReactionFA reaction = new ReactionFA(r.getId());
-
-            try {
-                KineticLaw law = r.getKineticLaw();
-                LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
-                // System.out.println(objective.getValue() + " - "+ lbound + " - "+ ubound);
-                reaction.setObjective(objective.getValue());
-            } catch (Exception ex) {
-                try {
-                    reaction.setObjective(getObjectiveFBC(r.getId(), m));
-                } catch (Exception ex2) {
-                    reaction.setObjective(0.0);
-                }
-            }
+           
+            reaction.setObjective(this.networkDS.getObjective(r.getId()));
             reaction.setBounds(this.networkDS.getLowerBound(r.getId()), this.networkDS.getUpperBound(r.getId()));
             ListOf spref = r.getListOfReactants();
             for (int e = 0; e < spref.size(); e++) {

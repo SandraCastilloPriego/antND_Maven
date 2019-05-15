@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.modules.analysis.reports;
 
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.parameters.ParameterSet;
 import com.vtt.antnd.util.taskControl.AbstractTask;
@@ -54,8 +53,6 @@ import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-
-
 
 /**
  *
@@ -94,17 +91,18 @@ public class ReportFBATask extends AbstractTask {
         setStatus(TaskStatus.FINISHED);
     }
 
-    public static List<PieDataset> createPieDataset(Model m) {
+    public static List<PieDataset> createPieDataset(Dataset data) {
         List<PieDataset> datasets = new ArrayList<>();
         Map<String, Double> fluxes = new HashMap<>();
         Map<String, Double> carbons = new HashMap<>();
         double totalInCarbon = 0;
+        Model m = data.getDocument().getModel();
         ListOf listOfReactions = m.getListOfReactions();
         for (int i = 0; i < m.getNumReactions(); i++) {
-            Reaction r = (Reaction) listOfReactions.get(i); 
-            if (r.getName().contains("exchange") || r.getName().contains("growth")) {
-                KineticLaw law = r.getKineticLaw();
-                double flux = law.getLocalParameter("FLUX_VALUE").getValue();
+            Reaction r = (Reaction) listOfReactions.get(i);
+            
+            if (isBoundary(r)) {
+                double flux = data.getFlux(r.getId());
                 ListOf listOfProducts = r.getListOfProducts();
                 for (int e = 0; e < r.getNumProducts(); e++) {
                     SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
@@ -162,26 +160,28 @@ public class ReportFBATask extends AbstractTask {
 
     }
 
-    public CategoryDataset createBarExchangeDataset(Model m) {
-        final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+    public static CategoryDataset createBarExchangeDataset(Dataset dataset) {
+        final DefaultCategoryDataset graphDataset = new DefaultCategoryDataset();
+        Model m = dataset.getDocument().getModel();
         ListOf listOfReactions = m.getListOfReactions();
         for (int i = 0; i < m.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
-            if (r.getName().contains("exchange") || r.getName().contains("growth")) {
-                double flux = this.dataset.getFlux(r.getId());
+            if (isBoundary(r)) {
+                double flux = dataset.getFlux(r.getId());
                 if (flux < 0) {
-                    dataset.addValue(flux, "Exchanges In", r.getName());
+                    graphDataset.addValue(flux, "Exchanges In", r.getName());
                 } else {
-                    dataset.addValue(flux, "Exchanges Out", r.getName());
+                    graphDataset.addValue(flux, "Exchanges Out", r.getName());
                 }
             }
 
         }
-        return dataset;
+        return graphDataset;
     }
 
-    public  CategoryDataset createBarDataset(Model m) {
+    public static CategoryDataset createBarDataset(Dataset dataset) {
         Map<String, Double> data = new HashMap<>();
+        Model m = dataset.getDocument().getModel();
         ListOf listOfReactions = m.getListOfReactions();
         for (int i = 0; i < m.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
@@ -201,27 +201,27 @@ public class ReportFBATask extends AbstractTask {
             }
 
         }
-        final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        final DefaultCategoryDataset graphDataset = new DefaultCategoryDataset();
         for (String d : data.keySet()) {
-            dataset.addValue(data.get(d), "Fluxes", d);
+            graphDataset.addValue(data.get(d), "Fluxes", d);
         }
 
-        return dataset;
+        return graphDataset;
 
     }
 
     public static JFreeChart createPieChart(PieDataset dataset, String title) {
         JFreeChart chart = ChartFactory.createPieChart3D(
-            title, // chart title 
-            dataset, // data    
-            true, // include legend   
-            true,
-            false);
+                title, // chart title 
+                dataset, // data    
+                true, // include legend   
+                true,
+                false);
 
         final PiePlot3D plot = (PiePlot3D) chart.getPlot();
 
         PieSectionLabelGenerator gen = new StandardPieSectionLabelGenerator(
-            "{0}: {2}", new DecimalFormat("0.000"), new DecimalFormat("0%"));
+                "{0}: {2}", new DecimalFormat("0.000"), new DecimalFormat("0%"));
         plot.setLabelGenerator(gen);
         plot.setStartAngle(290);
         plot.setDirection(Rotation.CLOCKWISE);
@@ -232,12 +232,12 @@ public class ReportFBATask extends AbstractTask {
 
     public static JFreeChart createBarChart(CategoryDataset dataset, String title) {
         JFreeChart barChart = ChartFactory.createBarChart3D(
-            title,
-            "Reactions",
-            "Fluxes",
-            dataset,
-            PlotOrientation.VERTICAL,
-            true, true, false);
+                title,
+                "Reactions",
+                "Fluxes",
+                dataset,
+                PlotOrientation.VERTICAL,
+                true, true, false);
 
         CategoryPlot plot = barChart.getCategoryPlot();
         CategoryAxis axis = (CategoryAxis) plot.getDomainAxis();
@@ -252,29 +252,45 @@ public class ReportFBATask extends AbstractTask {
             JasperReportBuilder report = report();
 
             report
-                .setTemplate(Templates.reportTemplate)
-                .title(Templates.createTitleComponent(this.dataset.getDatasetName()))
-                .setSummarySplitType(SplitType.IMMEDIATE)
-                .summary(
-                    cmp.subreport(ChangesReport()),
-                    cmp.pageBreak(),
-                    cmp.subreport(ExchangesReportBar()),
-                    cmp.pageBreak(),
-                    cmp.subreport(ExchangesReportPie()),
-                    cmp.pageBreak(),
-                    cmp.subreport(ImportantFluxesReport()),
-                    cmp.pageBreak(),
-                    cmp.subreport(OxygenReport()),
-                    cmp.pageBreak(),
-                    cmp.subreport(CofactorReport())
-                )
-                .pageFooter(cmp.line(),
-                    cmp.pageNumber().setStyle(Templates.boldCenteredStyle))
-                .show(false);
+                    .setTemplate(Templates.reportTemplate)
+                    .title(Templates.createTitleComponent(this.dataset.getDatasetName()))
+                    .setSummarySplitType(SplitType.IMMEDIATE)
+                    .summary(
+                            cmp.subreport(ChangesReport()),
+                            cmp.pageBreak(),
+                            cmp.subreport(ExchangesReportBar()),
+                            cmp.pageBreak(),
+                            cmp.subreport(ExchangesReportPie()),
+                            cmp.pageBreak(),
+                            cmp.subreport(ImportantFluxesReport()),
+                            cmp.pageBreak(),
+                            cmp.subreport(OxygenReport()),
+                            cmp.pageBreak(),
+                            cmp.subreport(CofactorReport())
+                    )
+                    .pageFooter(cmp.line(),
+                            cmp.pageNumber().setStyle(Templates.boldCenteredStyle))
+                    .show(false);
 
         } catch (DRException ex) {
             System.out.println(ex.toString());
         }
+    }
+
+    private static boolean isBoundary(Reaction r) {
+        for (SpeciesReference spr : r.getListOfReactants()) {
+            if (spr.getSpeciesInstance().isBoundaryCondition()) {
+                return true;
+            }
+        }
+
+        for (SpeciesReference spr : r.getListOfProducts()) {
+            if (spr.getSpeciesInstance().isBoundaryCondition()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private JasperReportBuilder ChangesReport() throws DRException {

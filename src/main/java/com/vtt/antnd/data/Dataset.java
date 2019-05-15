@@ -191,6 +191,10 @@ public interface Dataset {
         
         public void setLowerBound(String reaction, Double bound);
         
-        public void setUpperBound(String reaction, Double bound);        
+        public void setUpperBound(String reaction, Double bound);  
+        
+        public void setObjective(String reaction, Double obj);
+        
+        public Double getObjective(String reaction);
       
 }

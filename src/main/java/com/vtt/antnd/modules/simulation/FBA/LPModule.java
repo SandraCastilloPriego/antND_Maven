@@ -25,58 +25,56 @@ import com.vtt.antnd.parameters.ParameterSet;
 import com.vtt.antnd.parameters.SimpleParameterSet;
 import com.vtt.antnd.util.taskControl.Task;
 
-
-
 /**
  *
  * @author scsandra
  */
 public class LPModule implements NDProcessingModule {
 
-        public static final String MODULE_NAME = "FBA";
-        private final LPParameters parameters = new LPParameters();
+    public static final String MODULE_NAME = "FBA";
+    private final LPParameters parameters = new LPParameters();
 
-        @Override
-        public ParameterSet getParameterSet() {
-               // return parameters;
-            return null;
+    @Override
+    public ParameterSet getParameterSet() {
+        // return parameters;
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return MODULE_NAME;
+    }
+
+    @Override
+    public Task[] runModule(ParameterSet parameters) {
+
+        // prepare a new group of tasks
+        Task tasks[] = new LPTask[NDCore.getDesktop().getSelectedDataFiles().length];
+        if (NDCore.getDesktop().getSelectedDataFiles().length == 0) {
+            NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
+        } else {
+            for (int i = 0; i < NDCore.getDesktop().getSelectedDataFiles().length; i++) {
+                tasks[i] = new LPTask((SimpleBasicDataset) NDCore.getDesktop().getSelectedDataFiles()[i], (SimpleParameterSet) parameters);
+            }
+            NDCore.getTaskController().addTasks(tasks);
         }
 
-        @Override
-        public String toString() {
-                return MODULE_NAME;
-        }
+        return tasks;
+    }
 
-        @Override
-        public Task[] runModule(ParameterSet parameters) {
+    @Override
+    public NDModuleCategory getModuleCategory() {
+        return NDModuleCategory.SIMULATION;
+    }
 
-                // prepare a new group of tasks
-                Task tasks[] = new LPTask[1];
-                if (NDCore.getDesktop().getSelectedDataFiles().length == 0) {
-                        NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
-                } else {
+    @Override
+    public String getIcon() {
+        return "icons/FBA.png";
+    }
 
-                        tasks[0] = new LPTask((SimpleBasicDataset) NDCore.getDesktop().getSelectedDataFiles()[0], (SimpleParameterSet) parameters);
+    @Override
+    public boolean setSeparator() {
+        return true;
+    }
 
-                        NDCore.getTaskController().addTasks(tasks);
-                }
-
-                return tasks;
-        }
-
-        @Override
-        public NDModuleCategory getModuleCategory() {
-                return NDModuleCategory.SIMULATION;
-        }
-
-        @Override
-        public String getIcon() {
-                return "icons/FBA.png";
-        }
-
-        @Override
-        public boolean setSeparator() {
-                return true;
-        }
-   
 }

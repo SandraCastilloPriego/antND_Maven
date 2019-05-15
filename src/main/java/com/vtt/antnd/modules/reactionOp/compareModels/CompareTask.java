@@ -19,10 +19,11 @@ package com.vtt.antnd.modules.reactionOp.compareModels;
 
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.main.NDCore;
-import com.vtt.antnd.modules.analysis.reports.ReportFBATask;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarChart;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createPieChart;
 import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createPieDataset;
+import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarDataset;
+import static com.vtt.antnd.modules.analysis.reports.ReportFBATask.createBarExchangeDataset;
 import com.vtt.antnd.parameters.SimpleParameterSet;
 import com.vtt.antnd.util.taskControl.AbstractTask;
 import com.vtt.antnd.util.taskControl.TaskStatus;
@@ -40,52 +41,48 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.general.PieDataset;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
-
 
 /**
  *
  * @author scsandra
  */
 public class CompareTask extends AbstractTask {
-
+    
     private final Dataset[] networkDS;
     private double finishedPercentage = 0.0f;
     private final JInternalFrame frame;
     private final JScrollPane panel;
     private final JTextArea tf;
     private final StringBuffer info;
-
+    
     public CompareTask(Dataset[] datasets, SimpleParameterSet parameters) {
-        networkDS = datasets;
+        networkDS = datasets;        
         this.frame = new JInternalFrame("Result", true, true, true, true);
         this.tf = new JTextArea();
         this.panel = new JScrollPane(this.tf);
         this.info = new StringBuffer();
     }
-
+    
     @Override
     public String getTaskDescription() {
         return "Comparing... ";
     }
-
+    
     @Override
     public double getFinishedPercentage() {
         return finishedPercentage;
     }
-
+    
     @Override
     public void cancel() {
         setStatus(TaskStatus.CANCELED);
     }
-
+    
     @Override
     public void run() {
         try {
@@ -107,26 +104,26 @@ public class CompareTask extends AbstractTask {
             errorMessage = e.toString();
         }
     }
-
+    
     private void writeReport() {
         if (this.networkDS == null) {
             setStatus(TaskStatus.ERROR);
             NDCore.getDesktop().displayErrorMessage("You need to select two metabolic models.");
         }
-
+        
         Model model1 = this.networkDS[0].getDocument().getModel();
         Model model2 = this.networkDS[1].getDocument().getModel();
-
+        
         this.info.append("Reactions present in only in ").append(this.networkDS[0].getDatasetName()).append(":\n");
         ListOf listOfReactions = model1.getListOfReactions();
         for (int i = 0; i < model1.getNumReactions(); i++) {
-
+            
             Reaction r = (Reaction) listOfReactions.get(i);
             if (model2.getReaction(r.getId()) == null) {
                 showReactions(model1, r, null);
             }
         }
-
+        
         this.info.append("Reactions present in only in ").append(this.networkDS[1].getDatasetName()).append(":\n");
         ListOf listOfReactions2 = model2.getListOfReactions();
         for (int i = 0; i < model2.getNumReactions(); i++) {
@@ -135,7 +132,7 @@ public class CompareTask extends AbstractTask {
                 showReactions(model2, r, null);
             }
         }
-
+        
         List<String> commonReactions = new ArrayList<>();
         ListOf listOfReactions3 = model1.getListOfReactions();
         for (int i = 0; i < model1.getNumReactions(); i++) {
@@ -144,7 +141,7 @@ public class CompareTask extends AbstractTask {
                 commonReactions.add(r.getId());
             }
         }
-
+        
         try {
             this.info.append("Common reactions with different fluxes in ").append(this.networkDS[1].getDatasetName()).append(":\n");
             for (String re : commonReactions) {
@@ -158,31 +155,26 @@ public class CompareTask extends AbstractTask {
         frame.add(this.panel);
         NDCore.getDesktop().addInternalFrame(frame);
     }
-
+    
     private void showReactions(Model model, Reaction reaction, Reaction reaction2) {
         DecimalFormat df = new DecimalFormat("#.####");
-        KineticLaw law = reaction.getKineticLaw();
-        if (law != null) {
-            LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-            LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-            LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
-            info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound.getValue()).append(" up: ").append(ubound.getValue()).append("\n");
-            try {
-                if (reaction2 == null) {
-                    info.append("Flux: ").append(flux.getValue()).append("\n");
-
-                } else {
-                    KineticLaw law2 = reaction2.getKineticLaw();
-                    if (law != null && law2 != null) {
-                        LocalParameter flux2 = law2.getLocalParameter("FLUX_VALUE");
-                        info.append("Flux1: ").append(df.format(flux.getValue())).append(" - Flux2: ").append(df.format(flux2.getValue())).append("\n");
-                    }
-                }
-            } catch (Exception ex) {
+        
+        Double lbound = this.networkDS[0].getLowerBound(reaction.getId());
+        Double ubound = this.networkDS[0].getUpperBound(reaction.getId());
+        Double flux = this.networkDS[0].getFlux(reaction.getId());
+        info.append(reaction.getId()).append(" - ").append(reaction.getName()).append(" lb: ").append(lbound).append(" up: ").append(ubound).append("\n");
+        try {
+            if (reaction2 == null) {
+                info.append("Flux: ").append(flux).append("\n");
+                
+            } else {
+                Double flux2 = this.networkDS[1].getFlux(reaction2.getId());
+                info.append("Flux1: ").append(df.format(flux)).append(" - Flux2: ").append(df.format(flux2)).append("\n");
+                
             }
-        } else {
-            info.append(reaction.getId()).append(":\n");
+        } catch (Exception ex) {
         }
+        
         info.append("Reactants: \n");
         ListOf listOfSR = reaction.getListOfReactants();
         for (int i = 0; i < reaction.getNumReactants(); i++) {
@@ -192,7 +184,7 @@ public class CompareTask extends AbstractTask {
                 info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
             }
         }
-
+        
         info.append("Products: \n");
         ListOf listOfSP = reaction.getListOfProducts();
         for (int i = 0; i < reaction.getNumProducts(); i++) {
@@ -202,113 +194,101 @@ public class CompareTask extends AbstractTask {
                 info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
             }
         }
-
+        
         info.append("----------------------------------- \n");
-
+        
     }
-
+    
     private void showReactions2(Reaction reaction, Reaction reaction2) {
         DecimalFormat df = new DecimalFormat("#.####");
-        KineticLaw law = reaction.getKineticLaw();
-        if (law != null) {
-            LocalParameter flux = law.getLocalParameter("FLUX_VALUE");
-            if (reaction2 == null) {
-                info.append(reaction.getId()).append(flux.getValue()).append("\n");
-            } else {
-                KineticLaw law2 = reaction2.getKineticLaw();
-                if (law != null && law2 != null) {
-                    LocalParameter flux2 = law2.getLocalParameter("FLUX_VALUE");
-                    if (!df.format(flux.getValue()).equals(df.format(flux2.getValue()))) {
-                        info.append(reaction.getId()).append(":  ").append(df.format(flux.getValue())).append(" - ").append(df.format(flux2.getValue())).append(" --> ").append(reaction.getName()).append("\n");
-                    }
-                }
+        Double flux = this.networkDS[0].getFlux(reaction.getId());
+        if (reaction2 == null) {
+            info.append(reaction.getId()).append(flux).append("\n");
+        } else {
+            Double flux2 = this.networkDS[1].getFlux(reaction2.getId());
+            if (!df.format(flux).equals(df.format(flux2))) {
+                info.append(reaction.getId()).append(":  ").append(df.format(flux)).append(" - ").append(df.format(flux2)).append(" --> ").append(reaction.getName()).append("\n");
             }
         }
     }
-
+    
     private void writeGraphicReport() {
-
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
-        panel.setBackground(Color.white);
-
-        String info = "";
+        
+        JPanel localPanel = new JPanel();
+        localPanel.setLayout(new BoxLayout(localPanel, BoxLayout.PAGE_AXIS));
+        localPanel.setBackground(Color.white);
+        
+        String localInfo = "";
         for (Dataset data : this.networkDS) {
             Model m = data.getDocument().getModel();
-            info += "Model: " + data.getID() + ", " + data.getDatasetName() + "\n";
-            info += "Number of active reactions: " + m.getNumReactions() + "\n";
-            info += "Number of active reactions where the flux > abs(0.0001): " + getBigFluxes(m) + "\n";
-            info += "----------------------------- \n";
+            localInfo += "Model: " + data.getID() + ", " + data.getDatasetName() + "\n";
+            localInfo += "Number of active reactions: " + m.getNumReactions() + "\n";
+            localInfo += "Number of active reactions where the flux > abs(0.0001): " + getBigFluxes(data) + "\n";
+            localInfo += "----------------------------- \n";
         }
-        JTextArea area = new JTextArea(info);
+        JTextArea area = new JTextArea(localInfo);
         area.setEditable(false);
-        panel.add(area);
-
-        for (Dataset data : this.networkDS) {
-            Model m = data.getDocument().getModel();
+        localPanel.add(area);
+        
+        for (Dataset data : this.networkDS) {           
             area = new JTextArea("Model: " + data.getID() + ", " + data.getDatasetName() + "\n");
             area.setEditable(false);
-            panel.add(area);
-            List<PieDataset> datasets = createPieDataset(m);
+            localPanel.add(area);
+            List<PieDataset> datasets = createPieDataset(data);
             JFreeChart exchangesPos = createPieChart(datasets.get(0), "Exchanges out");
             JFreeChart exchangesNeg = createPieChart(datasets.get(1), "Exchanges in");
             JPanel chartpanel = new JPanel();
             chartpanel.add(new ChartPanel(exchangesNeg));
             chartpanel.add(new ChartPanel(exchangesPos));
             chartpanel.setBackground(Color.white);
-            panel.add(chartpanel);
+            localPanel.add(chartpanel);
         }
-
+        
         for (Dataset data : this.networkDS) {
             Model m = data.getDocument().getModel();
             area = new JTextArea("Model: " + data.getID() + ", " + data.getDatasetName() + "\n");
             area.setEditable(false);
-            panel.add(area);
-            ReportFBATask task = new ReportFBATask(data, null);
-            CategoryDataset dataset = task.createBarExchangeDataset(m);
+            localPanel.add(area);            
+            CategoryDataset dataset = createBarExchangeDataset(data);
             JFreeChart fluxesChart = createBarChart(dataset, "Exchange reactions in " + m.getId());
             JPanel fPanel = new JPanel();
             fPanel.add(new ChartPanel(fluxesChart));
             fPanel.setPreferredSize(new Dimension(500, 500));
             fPanel.setBackground(Color.white);
-            panel.add(fPanel);
-
+            localPanel.add(fPanel);
+            
         }
-
+        
         for (Dataset data : this.networkDS) {
             Model m = data.getDocument().getModel();
             area = new JTextArea("Model: " + data.getID() + ", " + data.getDatasetName() + "\n");
             area.setEditable(false);
-            panel.add(area);
-            ReportFBATask task = new ReportFBATask(data, null);
-            CategoryDataset dataset = task.createBarDataset(m);
+            localPanel.add(area);           
+            CategoryDataset dataset = createBarDataset(data);
             JFreeChart fluxesChart = createBarChart(dataset, "Important fluxes");
-            panel.add(new ChartPanel(fluxesChart));
+            localPanel.add(new ChartPanel(fluxesChart));
         }
-
+        
         JInternalFrame frameTable = new JInternalFrame("Report", true, true, true, true);
-        JScrollPane scrollPanel = new JScrollPane(panel);
+        JScrollPane scrollPanel = new JScrollPane(localPanel);
         frameTable.setSize(new Dimension(700, 500));
         frameTable.add(scrollPanel);
-
+        
         NDCore.getDesktop().addInternalFrame(frameTable);
         frameTable.setVisible(true);
-
+        
     }
-
-    private String getBigFluxes(Model m) {
-        int i = 0;
-        //ListOf listOfReactions = m.getListOfReactions();
-        //for (int e = 0; e < m.getNumReactions(); e++) {
-        //    Reaction r = (Reaction) listOfReactions.get(e);
-        for(Reaction r : m.getListOfReactions()){
-            KineticLaw law = r.getKineticLaw();
-            double flux = law.getLocalParameter("FLUX_VALUE").getValue();
+    
+    private String getBigFluxes(Dataset dataset) {
+        int i = 0;        
+        Model m = dataset.getDocument().getModel();
+        for (Reaction r : m.getListOfReactions()) {            
+            double flux = dataset.getFlux(r.getId());
             if (Math.abs(flux) >= 0.0001) {
                 i++;
             }
         }
         return String.valueOf(i);
     }
-
+    
 }

@@ -51,17 +51,17 @@ public class LPModuleMinimize implements NDProcessingModule {
         public Task[] runModule(ParameterSet parameters) {
 
                 // prepare a new group of tasks
-                Task tasks[] = new LPTask[1];
-                if (NDCore.getDesktop().getSelectedDataFiles().length == 0) {
-                        NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
-                } else {
+                Task tasks[] = new LPTask[NDCore.getDesktop().getSelectedDataFiles().length];
+        if (NDCore.getDesktop().getSelectedDataFiles().length == 0) {
+            NDCore.getDesktop().displayErrorMessage("You need to select a metabolic model.");
+        } else {
+            for (int i = 0; i < NDCore.getDesktop().getSelectedDataFiles().length; i++) {
+                tasks[i] = new LPTask((SimpleBasicDataset) NDCore.getDesktop().getSelectedDataFiles()[i], (SimpleParameterSet) parameters);
+            }
+            NDCore.getTaskController().addTasks(tasks);
+        }
 
-                        tasks[0] = new LPTask((SimpleBasicDataset) NDCore.getDesktop().getSelectedDataFiles()[0], (SimpleParameterSet) parameters);
-
-                        NDCore.getTaskController().addTasks(tasks);
-                }
-
-                return tasks;
+        return tasks;
         }
 
         @Override
