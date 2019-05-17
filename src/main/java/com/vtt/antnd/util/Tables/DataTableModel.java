@@ -21,6 +21,7 @@ package com.vtt.antnd.util.Tables;
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.DatasetType;
 import java.awt.Color;
+import java.util.List;
 import javax.swing.table.TableModel;
 
 /**
@@ -36,7 +37,7 @@ public interface DataTableModel extends TableModel {
      *
      */
     public void removeRows();
-
+    public void removeRows(List<String> reactions);
     /**
      * Returns the type of data set which correspons to this data model
      *

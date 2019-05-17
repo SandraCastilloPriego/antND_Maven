@@ -42,16 +42,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jumpmind.symmetric.csv.CsvReader;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
+
 import org.sbml.jsbml.Model;
-import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -110,19 +107,16 @@ public class FluxAnalysisTask extends AbstractTask {
             Model m = doc.getModel();
 
             SBMLDocument newDoc = doc.clone();
-            Model newModel = newDoc.getModel();
-            ListOf reactions = m.getListOfReactions();
-            for (int i = 0; i < reactions.size(); i++) {
-                Reaction reaction = (Reaction) reactions.get(i);
+            Model newModel = newDoc.getModel();           
+            for (Reaction reaction:m.getListOfReactions()) {             
                 if (!this.fluxes.containsKey(reaction.getId())) {
                     newModel.removeReaction(reaction.getId());
                 }
             }
 
             List<Species> toBeRemoved = new ArrayList<>();
-            ListOf species = newModel.getListOfSpecies();
-            for (int i = 0; i < species.size(); i++) {
-                Species sp = (Species) species.get(i);
+          
+            for (Species sp:newModel.getListOfSpecies()) {   
                 if (!this.isInReactions(newModel.getListOfReactions(), sp)) {
                     toBeRemoved.add(sp);
                 }
@@ -189,25 +183,22 @@ public class FluxAnalysisTask extends AbstractTask {
 
     public void createWorld(SBMLDocument doc, Map<String, Double> fluxes) {
         Model m = doc.getModel();
-        ListOf species = m.getListOfSpecies();
-        for (int i = 0; i < species.size(); i++) {
-            Species s = (Species) species.get(i);
+      
+        for (Species s:m.getListOfSpecies()) {         
             SpeciesFA specie = new SpeciesFA(s.getId(), s.getName());
             this.compounds.put(s.getId(), specie);
         }
 
-        ListOf reactions = m.getListOfReactions();
-        for (int i = 0; i < reactions.size(); i++) {
-            Reaction r = (Reaction) reactions.get(i);
+      
+        for (Reaction r : m.getListOfReactions()) {  
             boolean biomass = false;
 
             ReactionFA reaction = new ReactionFA(r.getId());
             this.networkDS.setFlux(r.getId(), fluxes.get(r.getId()));
             
             reaction.setBounds(this.networkDS.getLowerBound(r.getId()),this.networkDS.getUpperBound(r.getId()));
-            ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+
+            for (SpeciesReference s : r.getListOfReactants()) {
                 Species sp = m.getSpecies(s.getSpecies());
 
                 reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
@@ -222,9 +213,8 @@ public class FluxAnalysisTask extends AbstractTask {
                 }
             }
 
-            spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+          
+            for (SpeciesReference s : r.getListOfProducts()) {
                 Species sp = m.getSpecies(s.getSpecies());
 
                 if (sp.getName().contains("boundary") && reaction.getlb() < 0) {

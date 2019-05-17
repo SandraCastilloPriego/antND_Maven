@@ -28,8 +28,6 @@ import net.sf.dynamicreports.report.exception.DRException;
 import net.sf.jasperreports.engine.JRDataSource;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot3D;
-import org.sbml.jsbml.KineticLaw;
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
@@ -104,31 +102,24 @@ public class ExchangesReportPie {
         Map<String, Double> carbons = new HashMap<>();
         double totalInCarbon = 0;
 
-       ListOf reactions = m.getListOfReactions();
-        for (int e=0; e< reactions.size(); e++) {
-            Reaction r = (Reaction) reactions.get(e);
-            if (r.getName().contains("exchange") || r.getName().contains("growth")) {
-                KineticLaw law = r.getKineticLaw();
-                double flux = law.getParameter("FLUX_VALUE").getValue();
-                ListOf spref = r.getListOfProducts();
-                for (int i = 0; i < spref.size(); i++) {
-                    SpeciesReference c = (SpeciesReference) spref.get(i);
+     
+       for (Reaction r: m.getListOfReactions()) {              
+            if (r.getName().contains("exchange") || r.getName().contains("growth")) {              
+                double flux = this.data.getFlux(r.getId());               
+                for (SpeciesReference c:r.getListOfProducts()) {                 
                     Species sp = m.getSpecies(c.getSpecies());
-
                     try {
                         String notes = sp.getNotesString();
-                        // System.out.println(notes);
+             
                         String carbonsString = notes.substring(notes.indexOf("CARBONS:") + 8, notes.lastIndexOf("</p>"));
                         carbons.put(r.getName(), Double.valueOf(carbonsString));
-                        // System.out.println(carbonsString);
+                     
                         if (Double.valueOf(carbonsString) > 0.00001) {
                             fluxes.put(r.getName(), flux);
                         }
                         if (flux < -0.00001) {
                             totalInCarbon += Double.valueOf(carbonsString);
-                        } else {
-                            //totalOutCarbon += Double.valueOf(carbonsString);
-                        }
+                        } 
                     } catch (Exception ex) {
                     }
                 }
@@ -137,7 +128,6 @@ public class ExchangesReportPie {
 
         DRDataSource dataset = new DRDataSource("Reaction", "Flux", "Flux2", "Fluxes");
 
-      //  System.out.println(totalInCarbon);
         if (totalInCarbon == 0) {
             for (String r : fluxes.keySet()) {
                 double flux = fluxes.get(r);
@@ -150,7 +140,7 @@ public class ExchangesReportPie {
         } else {
             for (String r : fluxes.keySet()) {
                 double flux = fluxes.get(r);
-              //  System.out.println((carbons.get(r)) / totalInCarbon);
+             
                 if (flux <= 0) {
                     dataset.add(r, new BigDecimal(0.0), new BigDecimal((carbons.get(r) / totalInCarbon) * Math.abs(flux)));
                 } else {

@@ -29,8 +29,6 @@ import net.sf.jasperreports.engine.JRDataSource;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
-import org.sbml.jsbml.KineticLaw;
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 
@@ -87,12 +85,9 @@ public class ImportantFluxesReport {
 
     public JRDataSource createBarDataset(Model m) {
         Map<String, Double> Fdata = new HashMap<>();
-        ListOf reactions = m.getListOfReactions();
-        for (int e=0; e< reactions.size(); e++) {
-            Reaction r = (Reaction) reactions.get(e);
-            KineticLaw law = r.getKineticLaw();
-            double flux = law.getLocalParameter("FLUX_VALUE").getValue();
-            double realFlux = 0;
+        for (Reaction r : m.getListOfReactions()) {   
+            double flux = this.data.getFlux(r.getId());
+            double realFlux;
             if (flux > 500) {
                 realFlux = Math.abs(1000 - flux);
             } else if (flux < -500) {

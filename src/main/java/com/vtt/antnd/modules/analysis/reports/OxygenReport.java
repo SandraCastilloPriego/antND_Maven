@@ -5,7 +5,6 @@
  */
 package com.vtt.antnd.modules.analysis.reports;
 
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.ReactionFA;
 import com.vtt.antnd.main.NDCore;
@@ -32,14 +31,11 @@ import net.sf.dynamicreports.report.constant.SplitType;
 import net.sf.dynamicreports.report.datasource.DRDataSource;
 import net.sf.dynamicreports.report.exception.DRException;
 import net.sf.jasperreports.engine.JRDataSource;
-import org.sbml.jsbml.KineticLaw;
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-
 
 /**
  *
@@ -90,37 +86,37 @@ public class OxygenReport {
         }
 
         XyLineChartBuilder lineChart = cht.xyLineChart()
-            .setTitle("Oxygen variations (All exchanges)")
-            .setTitleFont(boldFont)
-            .setHeight(650)
-            .setXValue(XColumn)
-            .series(series.toArray(new XyChartSerieBuilder[series.size()]))
-            .setShowValues(true)
-            .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
-            .setYAxisFormat(cht.axisFormat().setLabel("Exchanges"));
+                .setTitle("Oxygen variations (All exchanges)")
+                .setTitleFont(boldFont)
+                .setHeight(650)
+                .setXValue(XColumn)
+                .series(series.toArray(new XyChartSerieBuilder[series.size()]))
+                .setShowValues(true)
+                .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
+                .setYAxisFormat(cht.axisFormat().setLabel("Exchanges"));
         charts.add(lineChart);
 
         XyLineChartBuilder lineChart2 = cht.xyLineChart()
-            .setTitle("Oxygen variations (All exchanges) - Relative to carbon source")
-            .setTitleFont(boldFont)
-            .setHeight(650)
-            .setXValue(XColumn)
-            .series(seriesRelative.toArray(new XyChartSerieBuilder[seriesRelative.size()]))
-            .setShowValues(true)
-            .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
-            .setYAxisFormat(cht.axisFormat().setLabel("Exchanges"));
+                .setTitle("Oxygen variations (All exchanges) - Relative to carbon source")
+                .setTitleFont(boldFont)
+                .setHeight(650)
+                .setXValue(XColumn)
+                .series(seriesRelative.toArray(new XyChartSerieBuilder[seriesRelative.size()]))
+                .setShowValues(true)
+                .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
+                .setYAxisFormat(cht.axisFormat().setLabel("Exchanges"));
         charts.add(lineChart2);
 
         for (TextColumnBuilder column : columns) {
             XyLineChartBuilder lineChart3 = cht.xyLineChart()
-                .setTitle("Oxygen variations (" + column.getName() + ")")
-                .setTitleFont(boldFont)
-                .setHeight(300)
-                .setXValue(XColumn)
-                .series(cht.xySerie(column))
-                .setShowValues(true)
-                .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
-                .setYAxisFormat(cht.axisFormat().setLabel(column.getName()));
+                    .setTitle("Oxygen variations (" + column.getName() + ")")
+                    .setTitleFont(boldFont)
+                    .setHeight(300)
+                    .setXValue(XColumn)
+                    .series(cht.xySerie(column))
+                    .setShowValues(true)
+                    .setXAxisFormat(cht.axisFormat().setLabel("Oxygen level"))
+                    .setYAxisFormat(cht.axisFormat().setLabel(column.getName()));
 
             if (column.getName().contains("Relative")) {
                 chartsRelative.add(lineChart3);
@@ -131,32 +127,28 @@ public class OxygenReport {
         }
 
         report
-            .setTemplate(Templates.reportTemplate)
-            .setSummarySplitType(SplitType.IMMEDIATE)
-            .title(Templates.createTitleComponentSmall("Changes in the fluxes due to the Oxygen levels"))
-            //.columns(columns.toArray(new TextColumnBuilder[columns.size()]))
-            .summary(
-                cmp.verticalList(charts.toArray(new XyLineChartBuilder[charts.size()])),
-                cmp.verticalList(chartsRelative.toArray(new XyLineChartBuilder[chartsRelative.size()])),
-                cmp.verticalGap(10)
-            )
-            .setDataSource(source);
+                .setTemplate(Templates.reportTemplate)
+                .setSummarySplitType(SplitType.IMMEDIATE)
+                .title(Templates.createTitleComponentSmall("Changes in the fluxes due to the Oxygen levels"))
+                //.columns(columns.toArray(new TextColumnBuilder[columns.size()]))
+                .summary(
+                        cmp.verticalList(charts.toArray(new XyLineChartBuilder[charts.size()])),
+                        cmp.verticalList(chartsRelative.toArray(new XyLineChartBuilder[chartsRelative.size()])),
+                        cmp.verticalGap(10)
+                )
+                .setDataSource(source);
         return report;
     }
 
     private JRDataSource createDataSource(Model m) {
         Fdata = new HashMap<>();
         Map<String, String> reactionIds = new HashMap<>();
-        ListOf reactions = m.getListOfReactions();
-        for (int i = 0; i < reactions.size(); i++) {
-            Reaction r = (Reaction) reactions.get(i);
-            if (r.getName().contains("exchange")|| r.getName().contains("Ex")  || r.getName().contains("growth")) {
-                KineticLaw law = r.getKineticLaw();
-                double flux = law.getLocalParameter("FLUX_VALUE").getValue();
+        for (Reaction r : m.getListOfReactions()) {
+            if (r.getName().contains("exchange") || r.getName().contains("Ex") || r.getName().contains("growth")) {
+
+                double flux = this.data.getFlux(r.getId());
                 Fdata.put(r.getName(), flux);
-                ListOf spref = r.getListOfProducts();
-                for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference c = (SpeciesReference) spref.get(e);
+                for (SpeciesReference c : r.getListOfProducts()) {
                     Species sp = m.getSpecies(c.getSpecies());
 
                     try {
@@ -164,7 +156,7 @@ public class OxygenReport {
                         String carbonsString = notes.substring(notes.indexOf("CARBONS:") + 8, notes.lastIndexOf("</p>"));
 
                         if (Double.valueOf(carbonsString) > 0) {
-                           // System.out.println(r.getName() + "-Relative");
+                            // System.out.println(r.getName() + "-Relative");
                             Fdata.put(r.getName() + "-Relative", flux);
                         }
                     } catch (NumberFormatException ex) {
@@ -184,9 +176,9 @@ public class OxygenReport {
             DRDataSource dataSource = new DRDataSource((String[]) Fdata.keySet().toArray(new String[Fdata.keySet().size()]));
 
             Model model = parentDataset.getDocument().getModel();
-            
+
             this.createReactions(model);
-            
+
             if (oxygen != null) {
                 this.setFluxes(model, reactionIds, dataSource, 0.0);
                 this.setFluxes(model, reactionIds, dataSource, -0.05);
@@ -216,11 +208,9 @@ public class OxygenReport {
 
             for (String r : Fdata.keySet()) {
                 Reaction reaction = model.getReaction(reactionIds.get(r));
-                if (reaction != null) {
-                    ListOf spref = reaction.getListOfProducts();
-                    for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference c = (SpeciesReference) spref.get(e);
-                    Species sp = model.getSpecies(c.getSpecies());
+                if (reaction != null) {                    
+                    for (SpeciesReference c: reaction.getListOfProducts()) {      
+                        Species sp = model.getSpecies(c.getSpecies());
 
                         try {
                             String notes = sp.getNotesString();
@@ -228,7 +218,7 @@ public class OxygenReport {
 
                             if (Double.valueOf(carbonsString) > 0) {
                                 carbons.put(r + "-Relative", Double.valueOf(carbonsString));
-                               // System.out.println("carbons " + r + "-Relative");
+                                // System.out.println("carbons " + r + "-Relative");
                                 if (soln.get(reactionIds.get(r)) <= 0) {
                                     totalInCarbon += Double.valueOf(carbonsString);
                                 }
@@ -239,7 +229,7 @@ public class OxygenReport {
                 }
             }
 
-           // System.out.println(totalInCarbon);
+            // System.out.println(totalInCarbon);
             for (String r : Fdata.keySet()) {
                 if (r.equals(this.oxygen.getName())) {
                     Fdata.put(r, Math.abs(soln.get(reactionIds.get(r))));
@@ -252,7 +242,7 @@ public class OxygenReport {
                         if (flux <= 0) {
                             Fdata.put(r, (carbons.get(r) / totalInCarbon) * Math.abs(soln.get(reactionIds.get(r.replace("-Relative", "")))) * -1);
 
-                           // System.out.println(r + " :" + (carbons.get(r) / totalInCarbon) * Math.abs(soln.get(reactionIds.get(r.replace("-Relative", "")))) * -1);
+                            // System.out.println(r + " :" + (carbons.get(r) / totalInCarbon) * Math.abs(soln.get(reactionIds.get(r.replace("-Relative", "")))) * -1);
                         } else {
                             Fdata.put(r, (carbons.get(r) / totalInCarbon) * Math.abs(soln.get(reactionIds.get(r.replace("-Relative", "")))));
                         }
@@ -270,7 +260,7 @@ public class OxygenReport {
             }
             if (fba.getMaxObj() > 0) {
                 dataSource.add(Fdata.values().toArray());
-               // System.out.println(Arrays.toString(Fdata.values().toArray()));
+                // System.out.println(Arrays.toString(Fdata.values().toArray()));
             }
         } catch (Exception ex) {
             System.out.println(ex);
@@ -279,34 +269,24 @@ public class OxygenReport {
     }
 
     private void createReactions(Model m) {
-        this.reactions = new HashMap<>();
-        ListOf reactions = m.getListOfReactions();
-        for (int i = 0; i < reactions.size(); i++) {
-            Reaction r= (Reaction) reactions.get(i);
+        this.reactions = new HashMap<>();       
+        for (Reaction r : m.getListOfReactions()) {         
             ReactionFA reaction = new ReactionFA(r.getId(), r.getName());
             if (r.getName().contains("oxygen") && r.getName().contains("exchange")) {
                 this.oxygen = reaction;
             }
-            try {
-                KineticLaw law = r.getKineticLaw();
-                LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-                LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                LocalParameter objective = law.getLocalParameter("OBJECTIVE_COEFFICIENT");
-                reaction.setObjective(objective.getValue());
-                reaction.setBounds(lbound.getValue(), ubound.getValue());
+            try { reaction.setObjective(this.data.getObjective(r.getId()));
+                reaction.setBounds(this.data.getLowerBound(r.getId()), this.data.getUpperBound(r.getId()));
             } catch (Exception ex) {
                 reaction.setBounds(-1000, 1000);
             }
-            ListOf spref = r.getListOfReactants();
-            for (int e = 0; e< spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+         
+            for (SpeciesReference s: r.getListOfReactants()) {               
                 Species sp = m.getSpecies(s.getSpecies());
                 reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
             }
 
-            spref = r.getListOfProducts();
-            for (int e = 0; e< spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+            for (SpeciesReference s: r.getListOfProducts()) {            
                 Species sp = m.getSpecies(s.getSpecies());
                 reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
             }

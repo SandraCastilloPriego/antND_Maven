@@ -236,4 +236,9 @@ public class MetaboliteDataModel extends AbstractTableModel implements DataTable
         return this.dataset;
     }
 
+    @Override
+    public void removeRows(List<String> reactions) {
+        
+    }
+
 }

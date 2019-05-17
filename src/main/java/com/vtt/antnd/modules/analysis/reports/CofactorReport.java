@@ -5,7 +5,6 @@
  */
 package com.vtt.antnd.modules.analysis.reports;
 
-
 import com.vtt.antnd.data.Dataset;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -32,13 +31,11 @@ import net.sf.jasperreports.engine.JRDataSource;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-
 
 /**
  *
@@ -60,24 +57,24 @@ public class CofactorReport {
         TextColumnBuilder<BigDecimal> CountColumn = col.column("Count", "Count", type.bigDecimalType());
 
         BarChartBuilder barChart = cht.barChart()
-            .setTitle("Cofactors")
-            .setHeight(500)
-            .addCustomizer(new ChartCustomizer())
-            .setTitleFont(boldFont)
-            .setShowValues(true)
-            .setCategory(CofactorColumn)
-            .series(cht.serie(CountColumn));
+                .setTitle("Cofactors")
+                .setHeight(500)
+                .addCustomizer(new ChartCustomizer())
+                .setTitleFont(boldFont)
+                .setShowValues(true)
+                .setCategory(CofactorColumn)
+                .series(cht.serie(CountColumn));
 
         report
-            .setTemplate(Templates.reportTemplate)
-            .title(Templates.createTitleComponentSmall("Cofactors"))
-            .columns(CofactorColumn, CountColumn)
-            .summary(
-                cmp.horizontalList(barChart)
-            )
-            //.pageFooter(cmp.line(),
-            //   cmp.pageNumber().setStyle(Templates.boldCenteredStyle))
-            .setDataSource(createDataset(this.data.getDocument().getModel()));
+                .setTemplate(Templates.reportTemplate)
+                .title(Templates.createTitleComponentSmall("Cofactors"))
+                .columns(CofactorColumn, CountColumn)
+                .summary(
+                        cmp.horizontalList(barChart)
+                )
+                //.pageFooter(cmp.line(),
+                //   cmp.pageNumber().setStyle(Templates.boldCenteredStyle))
+                .setDataSource(createDataset(this.data.getDocument().getModel()));
         //.show(false);
         return report;
     }
@@ -93,15 +90,12 @@ public class CofactorReport {
     public JRDataSource createDataset(Model m) {
         DRDataSource dataset = new DRDataSource("Cofactor", "Count");
         Map<String, Double> cofactors = new HashMap<>();
-        ListOf reactions = m.getListOfReactions();
-        for (int e=0; e< reactions.size(); e++) {
-            Reaction r = (Reaction) reactions.get(e);
-            KineticLaw law = r.getKineticLaw();
-            double flux =  law.getLocalParameter("FLUX_VALUE").getValue();
-            
+
+        for (Reaction r : m.getListOfReactions()) {
+            double flux = this.data.getFlux(r.getId());
             if (flux > 0) {
                 getCofactorAmounts(r.getListOfProducts(), cofactors, Math.abs(flux), "Produced", m);
-               // getCofactorAmounts(r.getListOfReactants(), cofactors, Math.abs(flux), "Consumed", m);
+                // getCofactorAmounts(r.getListOfReactants(), cofactors, Math.abs(flux), "Consumed", m);
             } else {
                 //getCofactorAmounts(r.getListOfProducts(), cofactors, Math.abs(flux), "Consumed", m);
                 getCofactorAmounts(r.getListOfReactants(), cofactors, Math.abs(flux), "Produced", m);
@@ -112,8 +106,9 @@ public class CofactorReport {
         Collections.sort(sortedKeys);
         for (String d : sortedKeys) {
             double amount = removeLoops(cofactors.get(d));
-            if(amount > 0)
+            if (amount > 0) {
                 dataset.add(d, new BigDecimal(amount));
+            }
         }
 
         return dataset;
@@ -121,7 +116,7 @@ public class CofactorReport {
     }
 
     private void getCofactorAmounts(ListOf listOfProducts, Map<String, Double> cofactors, double flux, String consumedProduced, Model m) {
-        for (int i =0; i < listOfProducts.size();i++) {
+        for (int i = 0; i < listOfProducts.size(); i++) {
             SpeciesReference spr = (SpeciesReference) listOfProducts.get(i);
             Species sp = m.getSpecies(spr.getSpecies());
             if (isCofactor(sp.getName())) {
@@ -137,7 +132,9 @@ public class CofactorReport {
     }
 
     private boolean isCofactor(String name) {
-        if(name.contains("port")) return false;
+        if (name.contains("port")) {
+            return false;
+        }
         if (name.startsWith("NADH") || name.startsWith("ATP") || name.startsWith("NADPH")) {
             return true;
         } else {
@@ -147,10 +144,12 @@ public class CofactorReport {
 
     private double removeLoops(double flux) {
         double correctedFlux = Math.abs(flux);
-        while(correctedFlux >= 999.0){
+        while (correctedFlux >= 999.0) {
             correctedFlux = correctedFlux - 1000;
         }
-        if(correctedFlux < 0) correctedFlux = 0;
+        if (correctedFlux < 0) {
+            correctedFlux = 0;
+        }
         return correctedFlux;
     }
 }

@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
@@ -170,15 +169,13 @@ public class KNeighborhoodTask extends AbstractTask {
     private AntGraph createGraph() {
         Model m = this.networkDS.getDocument().getModel();
         AntGraph g = new AntGraph(null, null);
-        ListOf reactions = m.getListOfReactions();
-        for (int i= 0; i < reactions.size();i++) {
-            Reaction reaction = (Reaction) reactions.get(i);
+        
+        for (Reaction reaction: m.getListOfReactions()) {           
             AntNode reactionNode = new AntNode(reaction.getId());
             g.addNode2(reactionNode);
 
-            ListOf spref = reaction.getListOfReactants();
-            for (int e = 0; e< spref.size();e++) {
-                SpeciesReference reactant = (SpeciesReference) spref.get(e);
+  
+            for (SpeciesReference reactant:reaction.getListOfReactants()) {              
                 Species sp = m.getSpecies(reactant.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
                     //System.out.println(sp.getName());
@@ -193,12 +190,10 @@ public class KNeighborhoodTask extends AbstractTask {
                 }
             }
             
-            spref = reaction.getListOfProducts();
-            for (int e = 0; e< spref.size();e++) {
-                SpeciesReference product = (SpeciesReference) spref.get(e);
+           
+            for (SpeciesReference product:reaction.getListOfProducts()) {            
                 Species sp = m.getSpecies(product.getSpecies());
                 if (!this.cofactors.contains(sp.getId())) {
-                   // System.out.println(sp.getName());
                     AntNode reactantNode = g.getNode(sp.getId());
                     if (reactantNode == null) {
                         reactantNode = new AntNode(sp.getId(), sp.getName());

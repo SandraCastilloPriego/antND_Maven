@@ -32,14 +32,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.table.AbstractTableModel;
 import javax.xml.stream.XMLStreamException;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SpeciesReference;
-import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
-import org.sbml.jsbml.ext.fbc.FluxObjective;
-import org.sbml.jsbml.ext.fbc.Objective;
-import org.sbml.jsbml.ext.fbc.Objective.Type;
 
 public class ReactionsDataModel extends AbstractTableModel implements DataTableModel {
 
@@ -88,6 +83,23 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
             model.removeReaction(reaction.getId());
         }
     }
+    
+    @Override
+    public void removeRows(List<String> reactions) {
+        Model model = dataset.getDocument().getModel();
+        List<Reaction> toBeRemoved = new ArrayList();
+
+        for (Reaction reaction : model.getListOfReactions()) {
+            if (reactions.contains(reaction.getId())) {
+                toBeRemoved.add(reaction);
+                this.fireTableDataChanged();                
+            }
+        }
+        for (Reaction reaction : toBeRemoved) {
+            model.removeReaction(reaction.getId());
+        }
+    }
+
 
     @Override
     public int getColumnCount() {
@@ -160,11 +172,15 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
     @Override
     @SuppressWarnings("fallthrough")
     public void setValueAt(Object aValue, int row, int column) {
+       
         // try {
         String info = "";
         Model model = this.dataset.getDocument().getModel();
         Reaction r = model.getReaction(row);
-
+        if(aValue.equals("Delete")){
+            System.out.println(row + " - "+ column + " - " + r.getId());
+            model.removeReaction(r);        
+        }
         String value = columns.get(column).getColumnName();
         switch (value) {
             case "Number":

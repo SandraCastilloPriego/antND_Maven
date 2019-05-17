@@ -36,7 +36,6 @@ import javax.swing.JTextArea;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
@@ -69,7 +68,7 @@ public class CycleDetectorTask extends AbstractTask {
 
     @Override
     public String getTaskDescription() {
-        return "Clustering... ";
+        return "Getting clycles... ";
     }
 
     @Override
@@ -97,9 +96,10 @@ public class CycleDetectorTask extends AbstractTask {
             }
 
             DefaultDirectedGraph g = this.getGraphForClustering(this.networkDS.getDocument().getModel());
-            
+            finishedPercentage = 0.5f;
             CycleDetector cyclesDetector = new CycleDetector(g);
             Set<String> cycles = cyclesDetector.findCycles();
+            finishedPercentage = 0.75f;
             this.createGraph(cycles,this.networkDS.getDocument().getModel());
             for (String n : cycles) {
                 info.append(n).append("\n");
@@ -128,13 +128,10 @@ public class CycleDetectorTask extends AbstractTask {
             jgraph.addVertex(sp.getId());
         }
 
-       // HashMap<String, String[]> bounds = new GetInfoAndTools().readBounds(this.networkDS);
         ListOf listOfReactions = model.getListOfReactions();
         for (int i = 0; i < model.getNumReactions(); i++) {
             Reaction r = (Reaction) listOfReactions.get(i);
             jgraph.addVertex(r.getId());
-           // String[] boundR = bounds.get(r.getId());
-            // if (Double.valueOf(boundR[3]) < 0) {
             ListOf reactants = r.getListOfReactants();
             for (int e = 0; e < reactants.size(); e++) {
                 SpeciesReference spref = (SpeciesReference) reactants.get(e);
@@ -142,8 +139,13 @@ public class CycleDetectorTask extends AbstractTask {
                 
                 try {
                     if (model.getSpecies(id) != null) {
-                        jgraph.addEdge(id, r.getId());
-                        jgraph.addEdge(r.getId(),id);
+                        if(this.networkDS.getLowerBound(r.getId())<0){
+                            jgraph.addEdge(r.getId(),id);
+                        }
+                        if(this.networkDS.getUpperBound(r.getId())>0){
+                             jgraph.addEdge(id, r.getId());
+                        }
+                        
                     }
                 } catch (Exception ex) {
                     System.out.println(ex.toString() + " - "+ id);
@@ -156,14 +158,18 @@ public class CycleDetectorTask extends AbstractTask {
                 String id = spref.getSpecies();
                 try {
                     if (model.getSpecies(id) != null) {
-                        jgraph.addEdge(r.getId(), id);
-                        jgraph.addEdge(id, r.getId());
+                        if(this.networkDS.getLowerBound(r.getId())<0){
+                            jgraph.addEdge(r.getId(),id);
+                        }
+                        if(this.networkDS.getUpperBound(r.getId())>0){
+                             jgraph.addEdge(id, r.getId());
+                        }
                     }
                 } catch (Exception ex) {                    
                     System.out.println(ex.toString() + " - "+ id);
                 }
             }
-            // }
+           
         }
         return jgraph;
     }
@@ -187,9 +193,9 @@ public class CycleDetectorTask extends AbstractTask {
         for (String cycle: cycles){
             if(model.getReaction(cycle)!= null){
                   Reaction r = model.getReaction(cycle);
-                  KineticLaw law = r.getKineticLaw();
-                  Double lowerBound = law.getLocalParameter("LOWER_BOUND").getValue();
-                  Double upperBound = law.getLocalParameter("UPPER_BOUND").getValue();                  
+                
+                  Double lowerBound = this.networkDS.getLowerBound(r.getId());
+                  Double upperBound = this.networkDS.getUpperBound(r.getId());
                   ListOf spref= r.getListOfReactants();
                   
                   for(int i = 0; i < spref.size(); i++){

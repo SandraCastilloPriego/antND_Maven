@@ -29,8 +29,6 @@ import net.sf.jasperreports.engine.JRDataSource;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
-import org.sbml.jsbml.KineticLaw;
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 
@@ -97,12 +95,9 @@ public class ExchangesReportBar {
     }
 
     private String getBigFluxes(Model m) {
-        int i = 0;
-        ListOf reactions = m.getListOfReactions();
-        for (int e=0; e< reactions.size(); e++) {
-            Reaction r = (Reaction) reactions.get(e);
-            KineticLaw law = r.getKineticLaw();
-            double flux = law.getLocalParameter("FLUX_VALUE").getValue();
+        int i = 0;        
+        for (Reaction r: m.getListOfReactions()) {     
+            double flux = this.data.getFlux(r.getId());
             if (Math.abs(flux) >= 0.0001) {
                 i++;
             }
@@ -111,16 +106,11 @@ public class ExchangesReportBar {
     }
 
     public JRDataSource createDataSources(Model m) {
-        Map<String, Double> fluxes = new HashMap<>();
-
-       ListOf reactions = m.getListOfReactions();
-        for (int e=0; e< reactions.size(); e++) {
-            Reaction r = (Reaction) reactions.get(e);
-            if (r.getName().contains("exchange") || r.getName().contains("growth")) {
-                KineticLaw law = r.getKineticLaw();
-                double flux = law.getParameter("FLUX_VALUE").getValue();
+        Map<String, Double> fluxes = new HashMap<>();      
+        for (Reaction r: m.getListOfReactions()) {            
+            if (r.getName().contains("exchange") || r.getName().contains("growth")) {               
+                double flux = this.data.getFlux(r.getId());
                 fluxes.put(r.getName(), flux);
-
             }
         }
 

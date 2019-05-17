@@ -30,8 +30,6 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
-
-import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.Species;
@@ -42,7 +40,7 @@ import org.sbml.jsbml.SpeciesReference;
  *
  * @author scsandra
  */
-public class PushableTable implements DataTable, ActionListener {
+public final class PushableTable implements DataTable, ActionListener {
 
     protected DataTableModel model;
     JTable table;
@@ -54,7 +52,7 @@ public class PushableTable implements DataTable, ActionListener {
     GetInfoAndTools tools;
 
     public PushableTable() {
-        registers = new ArrayList<register>();
+        registers = new ArrayList<>();
     }
 
     public PushableTable(DataTableModel model) {
@@ -63,7 +61,7 @@ public class PushableTable implements DataTable, ActionListener {
         ((AbstractTableModel) this.model).fireTableDataChanged();
         table = this.tableRowsColor(model);
         setTableProperties();
-        registers = new ArrayList<register>();
+        registers = new ArrayList<>();
     }
 
     /**
@@ -71,6 +69,7 @@ public class PushableTable implements DataTable, ActionListener {
      *
      * @param model
      */
+    @Override
     public void createTable(DataTableModel model) {
         this.model = model;
         // Color of the cells
@@ -82,6 +81,7 @@ public class PushableTable implements DataTable, ActionListener {
      *
      * @return Table
      */
+    @Override
     public JTable getTable() {
         return table;
     }
@@ -174,10 +174,8 @@ public class PushableTable implements DataTable, ActionListener {
                 String columnName = this.getTable().getColumnName(i);
                 if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
-                    Reaction reaction = m.getReaction(id);
-                    ListOf products = reaction.getListOfProducts();
-                    for (int e = 0; e < products.size(); e++) {
-                        SpeciesReference spr = (SpeciesReference) products.get(e);
+                    Reaction reaction = m.getReaction(id);                   
+                    for (SpeciesReference spr:reaction.getListOfProducts()) {          
                         Species sp = m.getSpecies(spr.getSpecies());
                         if (sp.getBoundaryCondition() == true) {
                             return true;
@@ -200,18 +198,16 @@ public class PushableTable implements DataTable, ActionListener {
                 if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
                     Reaction reaction = m.getReaction(id);
-                    ListOf reactants = reaction.getListOfReactants();
+                    
                     ArrayList compartReactants = new ArrayList<String>();
-                    for (int e = 0; e < reactants.size(); e++) {
-                        SpeciesReference spr = (SpeciesReference) reactants.get(e);
-                        Species sp = m.getSpecies(spr.getSpecies());
+                    for (SpeciesReference reactant:reaction.getListOfReactants()) {                   
+                        Species sp = m.getSpecies(reactant.getSpecies());
                         compartReactants.add(sp.getCompartment());
                     }
-                    ListOf products = reaction.getListOfProducts();
+          
                     ArrayList compartProducts = new ArrayList<String>();
-                    for (int e = 0; e < products.size(); e++) {
-                        SpeciesReference spr = (SpeciesReference) products.get(e);
-                        Species sp = m.getSpecies(spr.getSpecies());
+                    for (SpeciesReference product: reaction.getListOfProducts()) {                       
+                        Species sp = m.getSpecies(product.getSpecies());
                         compartProducts.add(sp.getCompartment());
                         if (sp.getBoundaryCondition() == true) {
                             return false;
@@ -343,7 +339,7 @@ public class PushableTable implements DataTable, ActionListener {
     }
 
     public void actionPerformed(ActionEvent e) {
-
+        System.out.print(e.getActionCommand());
         // Sets the action of the key combinations
         // Copy
         if (e.getActionCommand().compareTo("Copy") == 0) {
@@ -419,27 +415,13 @@ public class PushableTable implements DataTable, ActionListener {
         }
 
         // Delete
-        if (e.getActionCommand().compareTo("Delete") == 0) {
-            register newRegister = new register(table.getSelectedColumns(), table.getSelectedRows());
-            newRegister.getValues();
-
+        if (e.getActionCommand().compareTo("Delete") == 0) {   
             int[] selectedRow = table.getSelectedRows();
-            int[] selectedCol = table.getSelectedColumns();
-
-            try {
-                int selected = table.getSelectedRowCount();
-                for (int i = 0; i < selected; i++) {
-                    table.setValueAt("NA", table.getSelectedRow(), 1);
-                    table.repaint();
-                    table.revalidate();
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            newRegister.getNewValues();
-            this.registers.add(newRegister);
-            this.indexRegister = this.registers.size() - 1;
+            ArrayList<String> r = new ArrayList<>();
+            for (int i = 0; i < selectedRow.length; i++) {  
+                r.add((String) table.getValueAt(selectedRow[i], 1));
+            }   
+            model.removeRows(r);           
         }
 
         // Undo

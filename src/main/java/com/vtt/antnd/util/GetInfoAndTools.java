@@ -36,14 +36,11 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jumpmind.symmetric.csv.CsvReader;
-import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
-import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 
 /**
  *
@@ -230,8 +227,6 @@ public class GetInfoAndTools {
     }
     
     private boolean isInReactions(ListOf<Reaction> listOfReactions, Species sp) {
-       // for (int i = 0; i < listOfReactions.size(); i++) {
-       //     Reaction r = (Reaction) listOfReactions.get(i);
         for(Reaction r:listOfReactions){
             if (r.getProductForSpecies(sp.getId()) != null || r.getReactantForSpecies(sp.getId()) != null) {
                 return true;

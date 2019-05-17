@@ -73,8 +73,7 @@ public abstract class Analysism {
         return sMatrix;
     }
 
-    protected void setObjective() {
-        //this.getSolver().setObjType(objType);
+    protected void setObjective() {    
         this.getSolver().setObjType(ObjType.Minimize);
         Map< Integer, Double> map = new HashMap<>();
         for (int i = 0; i < objectiveList.size(); i++) {
@@ -103,17 +102,14 @@ public abstract class Analysism {
         for (ReactionFA reaction : this.reactionsList) {
             fluxesMap.put(reaction.getId(), fluxes.get(this.reactionPositionMap.get(reaction.getId())));
             reaction.setFlux(fluxes.get(this.reactionPositionMap.get(reaction.getId())));
-           // System.out.println(reaction.getId() + " - " + reaction.getFlux());
 
         }
         for (ReactionFA reaction : this.reactionsList) {
             if (reaction.getId().contains("R") && Math.abs(reaction.getFlux()) > 0.00000001) {
                 setFlux(reaction.getId(), reaction.getFlux(), fluxesMap);
-                //System.out.println(reaction.getId() + " - " + reaction.getFlux());
             }
         }
 
-        //System.out.println("\n");
         return fluxesMap;
     }
 
@@ -131,45 +127,19 @@ public abstract class Analysism {
 
         int i = 0;
         for (String reaction : reactions.keySet()) {
-            // System.out.print(reaction + " - ");
-
             ReactionFA r = reactions.get(reaction);
             if (r.getlb() < 0 && r.getub() > 0) {
                 ReactionFA newR = r.clone();
                 newR.reverseReaction();
                 newR.setBounds(0, Math.abs(r.getlb()));
                 r.setBounds(0.0, r.getub());
-//                System.out.println(r.getId());
-//                System.out.println("Reactants:");
-//                for (String re : r.getReactants()) {
-//                    System.out.println(re);
-//
-//                }
-//                System.out.println("Products:");
-//                for (String re : r.getProducts()) {
-//                    System.out.println(re);
-//                }
-//                System.out.println(newR.getId());
-//                System.out.println("Reactants:");
-//                for (String re : newR.getReactants()) {
-//                    System.out.println(re);
-//
-//                }
-//                System.out.println("Products:");
-//                for (String re : newR.getProducts()) {
-//                    System.out.println(re);
-//                }
 
                 this.reactionsList.add(newR);
                 this.reactionPositionMap.put(newR.getId(), i++);
                 this.objectiveList.add(1.0);
 
             }
-            /*else if(r.getlb()<0 && r.getub()==0){
-                System.out.println(r.getId());
-                r.reverseReaction();
-                r.setBounds(0, Math.abs(r.getlb()));
-            }*/
+         
             this.reactionsList.add(r);
 
             for (String reactant : r.getReactants()) {                
@@ -187,12 +157,7 @@ public abstract class Analysism {
             if (r.getObjective() == 1) {
                 r.setBounds(objective, objective);
             }
-
-            /* if (r.getFlux() > 0) {
-                r.setObjective(-1.0);
-            } else {
-                r.setObjective(1.0);
-            }*/
+           
             this.objectiveList.add(1.0);
 
         }
@@ -205,7 +170,6 @@ public abstract class Analysism {
             if (r.getId().equals(realId)) {
                 r.setFlux(flux * -1);
                 fluxesMap.put(r.getId(), flux * -1);
-               // System.out.println(r.getId() + " - " + r.getFlux());
             }
         }
     }

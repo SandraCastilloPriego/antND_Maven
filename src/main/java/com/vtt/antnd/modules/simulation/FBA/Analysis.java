@@ -20,6 +20,7 @@ public abstract class Analysis {
     private Map<String, Integer> metabolitePositionMap;
     List<ReactionFA> reactionsList;
     List<String> metabolitesList;
+    private ObjType direction = ObjType.Maximize;
 
     protected void setVars() {
         for (ReactionFA r : reactionsList) {
@@ -87,9 +88,9 @@ public abstract class Analysis {
         this.getSolver().setObj(map);
     }
 
-    public void setModel(HashMap<String, ReactionFA> reactions, Model model) {
-        this.getSolver().setObjType(ObjType.Maximize);
+    public void setModel(HashMap<String, ReactionFA> reactions, Model model) {        
         this.prepareReactions(reactions, model);
+        this.getSolver().setObjType(this.direction);
     }
     
     public void setModel(HashMap<String, ReactionFA> reactions, Model model, ObjType objType) {
@@ -151,6 +152,9 @@ public abstract class Analysis {
                 }
             }
            //System.out.println(r.getId()+" - " +r.getObjective());
+            if(r.getObjective()<0){
+                this.direction = ObjType.Minimize;
+            }
             this.objectiveList.add(r.getObjective());
             this.reactionPositionMap.put(r.getId(), i++);
         }

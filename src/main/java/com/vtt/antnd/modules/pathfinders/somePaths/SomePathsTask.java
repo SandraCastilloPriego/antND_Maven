@@ -41,9 +41,6 @@ import java.util.Map;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import org.sbml.jsbml.KineticLaw;
-import org.sbml.jsbml.ListOf;
-import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
@@ -63,14 +60,13 @@ public class SomePathsTask extends AbstractTask {
     private final String biomassID;
     private final HashMap<String, ReactionFA> reactions;
     private final HashMap<String, SpeciesFA> compounds;
-    private HashMap<String, String[]> bounds;
-    private Map<String, Double[]> sources;
+    private final HashMap<String, String[]> bounds;
+    private final Map<String, Double[]> sources;
     private final List<String> sourcesList, cofactors;
-    private JInternalFrame frame;
-    private JScrollPane panel;
-    private JPanel pn;
+    private final JInternalFrame frame;
+    private final JScrollPane panel;
+    private final JPanel pn;
     private final int iterations;
-    private boolean removedReaction = false;
     private final GetInfoAndTools tools;
 
     public SomePathsTask(SimpleBasicDataset dataset, SimpleParameterSet parameters) {
@@ -163,17 +159,14 @@ public class SomePathsTask extends AbstractTask {
 
     private void createWorld() {
         SBMLDocument doc = this.networkDS.getDocument();
-        Model m = doc.getModel();
-        ListOf species = m.getListOfSpecies();
-        for (int i = 0; i < species.size(); i++) {
-            Species s = (Species) species.get(i);
+        Model m = doc.getModel();       
+        for (Species s: m.getListOfSpecies()) {          
             SpeciesFA specie = new SpeciesFA(s.getId(), s.getName());
             this.compounds.put(s.getId(), specie);
         }
 
-        ListOf reactions = m.getListOfReactions();
-        for (int i = 0; i < reactions.size(); i++) {
-            Reaction r = (Reaction) reactions.get(i);
+      
+        for (Reaction r: m.getListOfReactions()) {         
             boolean biomass = false;
             //System.out.println(r.getId());
             ReactionFA reaction = new ReactionFA(r.getId());
@@ -181,11 +174,8 @@ public class SomePathsTask extends AbstractTask {
             if (b != null) {
                 reaction.setBounds(Double.valueOf(b[3]), Double.valueOf(b[4]));
             } else {
-                try {
-                    KineticLaw law = r.getKineticLaw();
-                    LocalParameter lbound = law.getLocalParameter("LOWER_BOUND");
-                    LocalParameter ubound = law.getLocalParameter("UPPER_BOUND");
-                    reaction.setBounds(lbound.getValue(), ubound.getValue());
+                try {                   
+                    reaction.setBounds(this.networkDS.getLowerBound(r.getId()), this.networkDS.getUpperBound(r.getId()));
                 } catch (Exception ex) {
                     try {
                         FBCReactionPlugin plugin = (FBCReactionPlugin) r.getPlugin("fbc");
@@ -197,9 +187,8 @@ public class SomePathsTask extends AbstractTask {
                     }
                 }
             }
-            ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+          
+            for (SpeciesReference s: r.getListOfReactants()) {               
                 Species sp = m.getSpecies(s.getSpecies());
 
                 reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
@@ -214,9 +203,8 @@ public class SomePathsTask extends AbstractTask {
                 }
             }
 
-            spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
+           
+            for (SpeciesReference s : r.getListOfProducts()) {
                 Species sp = m.getSpecies(s.getSpecies());
                 //System.out.println(sp.getName());
                 if (sp.getBoundaryCondition() && reaction.getlb() < 0) {
@@ -243,10 +231,8 @@ public class SomePathsTask extends AbstractTask {
                 }
             }
 
-            if (r.getNumProducts() == 0) {
-                spref = r.getListOfReactants();
-                for (int e = 0; e < spref.size(); e++) {
-                    SpeciesReference s = (SpeciesReference) spref.get(e);
+            if (r.getNumProducts() == 0) {            
+                for (SpeciesReference s: r.getListOfReactants()) {                
                     Species sp = m.getSpecies(s.getSpecies());
                     SpeciesFA specie = this.compounds.get(sp.getId());
                     if (specie.getAnt() == null) {
