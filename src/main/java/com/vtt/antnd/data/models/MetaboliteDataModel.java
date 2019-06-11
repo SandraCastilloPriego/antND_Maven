@@ -69,7 +69,7 @@ public class MetaboliteDataModel extends AbstractTableModel implements DataTable
                     String notes = sp.getNotesString();
                     return notes;
                 case "Compartment":
-                    return sp.getCompartment();
+                    return sp.getCompartment();              
                /* case "Reactions":
                     return this.getPossibleReactions(sp.getId(), m);*/
             }
@@ -139,7 +139,7 @@ public class MetaboliteDataModel extends AbstractTableModel implements DataTable
                     dataset.addInfo(info);
                     r.setCompartment(aValue.toString());
                     return;    
-                    
+                
               /*  case "Reactions":
                      
                     return;*/

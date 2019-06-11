@@ -111,7 +111,7 @@ public class LPTask extends AbstractTask {
         createReactions();
         objective = this.getFlux();
 
-        if (objective > 0.0) {
+        if (objective > -100.0) {
             AntGraph g = createGraph();
             return g;
         }

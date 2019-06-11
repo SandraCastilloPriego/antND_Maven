@@ -10,9 +10,9 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -Dsun.java2d.opengl=True -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
-                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
+                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/src/main</exec.workingdir>
             </properties>
         </action>
         <action>
@@ -25,10 +25,10 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -Dsun.java2d.opengl=True -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
-                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
+                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/src/main</exec.workingdir>
             </properties>
         </action>
         <action>
@@ -41,9 +41,9 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
+                <exec.args>-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni/:/usr/lib -Dsun.java2d.opengl=True -classpath %classpath com.vtt.antnd.main.NDCore</exec.args>
                 <exec.executable>java</exec.executable>
-                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/workingDir</exec.workingdir>
+                <exec.workingdir>/home/scsandra/NetBeansProjects/antND/src/main</exec.workingdir>
             </properties>
         </action>
     </actions>

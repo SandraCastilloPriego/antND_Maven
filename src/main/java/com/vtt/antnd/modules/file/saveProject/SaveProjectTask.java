@@ -294,48 +294,51 @@ public class SaveProjectTask extends AbstractTask {
     private void setObjective(Dataset data) {
         Model m = data.getDocument().getModel();
         for (Reaction r : m.getListOfReactions()) {
-            Double objval = data.getObjective(r.getId());
-            if (objval != null && objval != 0) {
-                removeObjective(r.getId(), m);
-                FBCModelPlugin plugin = (FBCModelPlugin) m.getPlugin("fbc");
-                if (plugin != null) {
-                    FluxObjective fx = new FluxObjective();
-                    fx.setReaction(r);
-                    fx.setCoefficient(objval);
+            try {
+                Double objval = data.getObjective(r.getId());
+                if (objval != null && objval != 0) {
+                    removeObjective(r.getId(), m);
+                    FBCModelPlugin plugin = (FBCModelPlugin) m.getPlugin("fbc");
+                    if (plugin != null) {
+                        FluxObjective fx = new FluxObjective();
+                        fx.setReaction(r);
+                        fx.setCoefficient(objval);
+                        Objective.Type type = Objective.Type.MAXIMIZE;
+                        if (objval < 0) {
+                            type = Objective.Type.MINIMIZE;
+                        }
+                        Objective objf = null;
+                        for (Objective obj : plugin.getListOfObjectives()) {
+                            for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
+                                if (fobj.getReaction().equals(r.getId())) {
+                                    fobj.setCoefficient(objval);
+                                    objf = obj;
+                                    break;
+                                }
+                            }
+                        }
+                        if (objf == null) {
+                            objf = plugin.createObjective("obj" + r.getId(), type);
+                            objf.addFluxObjective(fx);
+                            plugin.setActiveObjective(objf);
+                        }
+                    }
+                } else if (objval != null) {
+
+                    FBCModelPlugin plugin = new FBCModelPlugin(m);
                     Objective.Type type = Objective.Type.MAXIMIZE;
                     if (objval < 0) {
                         type = Objective.Type.MINIMIZE;
                     }
-                    Objective objf = null;
-                    for (Objective obj : plugin.getListOfObjectives()) {
-                        for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
-                            if (fobj.getReaction().equals(r.getId())) {
-                                fobj.setCoefficient(objval);
-                                objf = obj;
-                                break;
-                            }
-                        }
-                    }
-                    if (objf == null) {
-                        objf = plugin.createObjective("obj" + r.getId(), type);
-                        objf.addFluxObjective(fx);
-                        plugin.setActiveObjective(objf);
-                    }
-                }
-            } else if (objval != null) {
+                    Objective obj = plugin.createObjective("obj" + r.getId(), type);
+                    FluxObjective fx = new FluxObjective();
+                    fx.setReaction(r);
+                    fx.setCoefficient(objval);
+                    obj.addFluxObjective(fx);
+                    plugin.setActiveObjective(obj);
 
-                FBCModelPlugin plugin = new FBCModelPlugin(m);
-                Objective.Type type = Objective.Type.MAXIMIZE;
-                if (objval < 0) {
-                    type = Objective.Type.MINIMIZE;
                 }
-                Objective obj = plugin.createObjective("obj" + r.getId(), type);
-                FluxObjective fx = new FluxObjective();
-                fx.setReaction(r);
-                fx.setCoefficient(objval);
-                obj.addFluxObjective(fx);
-                plugin.setActiveObjective(obj);
-
+            } catch (Exception e) {
             }
         }
     }

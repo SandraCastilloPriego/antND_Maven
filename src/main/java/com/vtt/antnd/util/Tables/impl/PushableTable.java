@@ -549,7 +549,7 @@ public final class PushableTable implements DataTable, ActionListener {
         Double lb = dataset.getLowerBound(r.getId());
         Double ub = dataset.getUpperBound(r.getId());
         Double flux = dataset.getFlux(r.getId());
-        if (flux != null) {
+        if (flux != null && flux != 0) {
             if (flux > 0) {
                 direction = 1;
             } else if (flux < 0) {
