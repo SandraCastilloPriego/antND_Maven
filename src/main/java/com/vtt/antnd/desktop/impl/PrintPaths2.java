@@ -83,7 +83,7 @@ public class PrintPaths2 implements KeyListener {
         this.dataset = dataset;
         CofactorConfParameters conf = new CofactorConfParameters();
         this.cofactors = conf.getParameter(CofactorConfParameters.cofactors).getValue();
-        this.m = dataset.getDocument().getModel();       
+        this.m = dataset.getDocument().getModel();
         this.selectedNode = new ArrayList<>();
         this.popupMenu = new JPopupMenu();
 
@@ -126,7 +126,7 @@ public class PrintPaths2 implements KeyListener {
                         c = Color.orange;
                     }
                     String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                   // System.out.println(hex);
+                    // System.out.println(hex);
                     gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
                     gNode.addAttribute("ui.label", n);
                 }
@@ -198,85 +198,46 @@ public class PrintPaths2 implements KeyListener {
 
     }
 
-    private void saveImage(String path) {
-        String pathpng = path;
-        if (!path.contains(".png")) {
-            pathpng = path + ".png";
-        }
-        this.g.addAttribute("ui.screenshot", pathpng);
-        PrintWriter writer;
-        try {
-            if (!path.contains(".gml")) {
-                path = path + ".gml";
+    private Map<Node, String> writeNodes(PrintWriter writer) {
+        int i = 0;
+        Map<Node, String> indexes = new HashMap<>();
+        for (Node node : this.g.getEachNode()) {
+            indexes.put(node, String.valueOf(i));
+            writer.println("\tnode\n\t[");
+            writer.println("\t\tid\t" + i++);
+            writer.println("\t\tlabel\t\"" + node.getId() + "\"");
+            writer.println("\t\tgraphics\n\t\t[");
+
+            //Position
+            String gnodestr = isThere(node.getId());
+            GraphicNode n = viewer.getGraphicGraph().getNode(gnodestr);
+            double x = n.getX();
+            double y = n.getY();
+            Point3 pixels = viewer.getDefaultView().getCamera().transformGuToPx(x, y, 0);
+
+            writer.println("\t\t\tx\t" + pixels.x);
+            writer.println("\t\t\ty\t" + pixels.y);
+            String name = node.getId();
+            if (name.contains(" : ")) {
+                name = name.split(" : ")[0];
             }
-            writer = new PrintWriter(path, "UTF-8");
-            writer.println("Creator \"yFiles\"");
-            writer.println("Version	\"2.16\"");
-            writer.println("graph\n[");
-            writer.println("\thierarchic\t1");
-            writer.println("\tlabel\t\"\"");
-            writer.println("\tdirected\t1");
-            Map<Node, String> indexes = new HashMap<>();
-
-            int i = 0;
-            for (Node node : this.g.getEachNode()) {
-                indexes.put(node, String.valueOf(i));
-                writer.println("\tnode\n\t[");
-                //writer.println("\t\troot_index\t" + i);
-                writer.println("\t\tid\t" + i++);
-                writer.println("\t\tlabel\t\"" + node.getId() + "\"");
-                writer.println("\t\tgraphics\n\t\t[");
-
-                //Position
-                String gnodestr = isThere(node.getId());
-                GraphicNode n = viewer.getGraphicGraph().getNode(gnodestr);
-                double x = n.getX();
-                double y = n.getY();
-                Point3 pixels = viewer.getDefaultView().getCamera().transformGuToPx(x, y, 0);
-
-                writer.println("\t\t\tx\t" + pixels.x);
-                writer.println("\t\t\ty\t" + pixels.y);
-                String name = node.getId();
-                if (name.contains(" : ")) {
-                    name = name.split(" : ")[0];
-                }
-                //Nodes
-                if (this.m.getSpecies(name) != null) {
-                    if (this.cofactors.contains(name)) {
-                        writeSpecie(writer, 15, node.getAttribute("ui.label"));
-                    } else {
-                        writeSpecie(writer, 35, node.getAttribute("ui.label"));
-                    }
+            //Nodes
+            if (this.m.getSpecies(name) != null) {
+                if (this.cofactors.contains(name)) {
+                    writeSpecie(writer, 15, node.getAttribute("ui.label"));
                 } else {
-                    writeReaction(writer, node.getAttribute("ui.label"));
+                    writeSpecie(writer, 35, node.getAttribute("ui.label"));
                 }
-
-                writer.println("\t\t]");
-
-                writer.println("\t]");
-
+            } else {
+                writeReaction(writer, node.getAttribute("ui.label"));
             }
 
-            for (Edge edge : g.getEachEdge()) {
+            writer.println("\t\t]");
 
-                writer.println("\tedge\n\t[");
-                // writer.println("\t\troot_index\t" + i++);
-                writer.println("\t\ttarget\t" + indexes.get(edge.getTargetNode()));
-                writer.println("\t\tsource\t" + indexes.get(edge.getSourceNode()));
-                writer.println("\t\tgraphics\n\t\t[");
-                writer.println("\t\t\tfill\t\"#000000\"");
-                if (edge.isDirected()) {
-                    writer.println("\t\t\ttargetArrow\t\"standard\"");
-                }
-                writer.println("\t\t]");
-                writer.println("\t]");
-            }
-            writer.println("]");
+            writer.println("\t]");
 
-            writer.close();
-        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
-            Logger.getLogger(PrintPaths.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return indexes;
     }
 
     private void writeSpecie(PrintWriter writer, double size, String label) {
@@ -320,7 +281,51 @@ public class PrintPaths2 implements KeyListener {
         writer.println("\t\t\ttext\t\"" + id + "\"");
         writer.println("\t\t\tfontSize\t12");
         writer.println("\t\t\tfontName\t\"Dialog\"");
+    }
 
+    private void writeEdges(PrintWriter writer, Map<Node, String> indexes) {
+        for (Edge edge : g.getEachEdge()) {
+            writer.println("\tedge\n\t[");
+            // writer.println("\t\troot_index\t" + i++);
+            writer.println("\t\ttarget\t" + indexes.get(edge.getTargetNode()));
+            writer.println("\t\tsource\t" + indexes.get(edge.getSourceNode()));
+            writer.println("\t\tgraphics\n\t\t[");
+            writer.println("\t\t\tfill\t\"#000000\"");
+            if (edge.isDirected()) {
+                writer.println("\t\t\ttargetArrow\t\"standard\"");
+            }
+            writer.println("\t\t]");
+            writer.println("\t]");
+        }
+    }
+
+    private void saveImage(String path) {
+        String pathpng = path;
+        if (!path.contains(".png")) {
+            pathpng = path + ".png";
+        }
+        this.g.addAttribute("ui.screenshot", pathpng);
+        PrintWriter writer;
+        try {
+            if (!path.contains(".gml")) {
+                path = path + ".gml";
+            }
+            writer = new PrintWriter(path, "UTF-8");
+            writer.println("Creator \"yFiles\"");
+            writer.println("Version	\"2.16\"");
+            writer.println("graph\n[");
+            writer.println("\thierarchic\t1");
+            writer.println("\tlabel\t\"\"");
+            writer.println("\tdirected\t1");
+
+            Map<Node, String> indexes = writeNodes(writer);
+            writeEdges(writer, indexes);
+            writer.println("]");
+
+            writer.close();
+        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
+            Logger.getLogger(PrintPaths.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public class ViewerEventListener extends DefaultMouseManager implements ViewerListener, ActionListener {
@@ -336,9 +341,9 @@ public class PrintPaths2 implements KeyListener {
         @Override
         public void mouseClicked(MouseEvent e) {
             selectedNode.removeAll(selectedNode);
-            if (e.isControlDown()) {
-                centerOn(e.getPoint());
-            }
+            //if (e.isControlDown()) {
+            //    centerOn(e.getPoint());
+            //}
         }
 
         private void centerOn(Point point) {
@@ -401,6 +406,38 @@ public class PrintPaths2 implements KeyListener {
             return info.toString();
         }
 
+        private void restartColors() {
+            for (Node gNode : displayedGraph.getEachNode()) {
+                String sourceLine = gNode.toString();
+                String n = sourceLine.split(" - ")[0];
+                String r = sourceLine.split(" : ")[0];
+                String rlabel = r + " : " + dataset.getFlux(r);
+                Color c = colors.get(sourceLine);
+                if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
+                    gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
+                    gNode.addAttribute("ui.label", rlabel);
+                } else if (cofactors.contains(r)) {
+                    if (c == null) {
+                        c = Color.pink;
+                    }
+                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                    //  System.out.println(hex);
+                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
+                    gNode.addAttribute("ui.label", n);
+                } else {
+                    if (c == null) {
+                        c = Color.orange;
+                    }
+                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                    // System.out.println(hex);
+                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+                    gNode.addAttribute("ui.label", n);
+
+                }
+            }
+
+        }
+
         @Override
         public void mousePressed(MouseEvent e) {
             curElement = view.findNodeOrSpriteAt(e.getX(), e.getY());
@@ -409,12 +446,14 @@ public class PrintPaths2 implements KeyListener {
                 mouseButtonPressOnElement(curElement, e);
                 Node node = displayedGraph.getNode(curElement.getId());
                 if (node != null) {
+                    restartColors();
                     String sourceLine = node.toString();
                     area.setText(data(sourceLine));
                     selectedNode.add(sourceLine);
                     node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 25px;text-alignment: center;");
 
                     if (e.isPopupTrigger()) {
+
                         popupMenu = new JPopupMenu();
                         Model mInit;
                         try {
@@ -454,35 +493,7 @@ public class PrintPaths2 implements KeyListener {
                 y1 = e.getY();
                 mouseButtonPress(e);
                 view.beginSelectionAt(x1, y1);
-                for (Node gNode : displayedGraph.getEachNode()) {
-                    String sourceLine = gNode.toString();
-                    selectedNode.remove(sourceLine);
-                    String n = sourceLine.split(" - ")[0];
-                    String r = sourceLine.split(" : ")[0];
-                    String rlabel = r + " : " + dataset.getFlux(r);
-                    Color c = colors.get(sourceLine);
-                    if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
-                        gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
-                        gNode.addAttribute("ui.label", rlabel);
-                    } else if (cofactors.contains(r)) {
-                        if (c == null) {
-                            c = Color.pink;
-                        }
-                        String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                      //  System.out.println(hex);
-                        gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
-                        gNode.addAttribute("ui.label", n);
-                    } else {
-                        if (c == null) {
-                            c = Color.orange;
-                        }
-                        String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                       // System.out.println(hex);
-                        gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                        gNode.addAttribute("ui.label", n);
-
-                    }
-                }
+                restartColors();
             }
 
         }
@@ -555,6 +566,8 @@ public class PrintPaths2 implements KeyListener {
 
             try {
                 Node node = displayedGraph.getNode(Integer.parseInt(id));
+                selectedNode.clear();
+
                 if (node != null) {
                     String sourceLine = node.toString();
                     selectedNode.add(sourceLine);
@@ -730,8 +743,15 @@ public class PrintPaths2 implements KeyListener {
                 continue;
             }
             if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
-                double lb = dInit.getLowerBound(r.getId());
-                double ub = dInit.getUpperBound(r.getId());
+                double lb = -1000;
+                double ub = 1000;
+
+                try {
+                    lb = dInit.getLowerBound(r.getId());
+                    ub = dInit.getUpperBound(r.getId());
+                } catch (Exception e) {
+                    System.out.println("The bounds for the reaction " + r.getId() + " are no defined. It will appear as bidirectional in the graph.");
+                }
                 Double flux = dInit.getFlux(r.getId());
 
                 // adds the new reaction node with and edge from the extended node
