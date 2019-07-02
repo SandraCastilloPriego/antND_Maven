@@ -35,7 +35,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
-import javax.swing.JColorChooser;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -89,6 +88,70 @@ public class PrintPaths2 implements KeyListener {
 
     }
 
+    private Color setCompoundNodeColor(Color c, String n) {
+        if (c == null) {
+            n = n.split(" : ")[0];
+            try {
+                switch (dataset.getDocument().getModel().getSpecies(n).getCompartment()) {
+                    case "c":
+                        c = new Color(253, 174, 97);
+                        break;
+                    case "m":
+                        c = new Color(67, 147, 195);
+                        break;
+                    case "n":
+                        c = new Color(153, 112, 171);
+                        break;
+                    case "x":
+                        c = new Color(191, 129, 45);
+                        break;
+                    case "l":
+                        c = new Color(128, 205, 193);
+                        break;
+                    default:
+                        c = new Color(222, 119, 174);
+                        break;
+                }
+            } catch (NullPointerException e) {
+                c = new Color(222, 119, 174);
+            }
+
+        }
+        return c;
+    }
+
+    private void setColorToNode(AntNode node) {
+        String name = node.getCompleteId();
+        String n = name.split(" - ")[0];
+        String r = name.split(" : ")[0];
+        String rlabel = r + " : " + PrintPaths2.this.dataset.getFlux(r);
+        g.addNode(name);
+        if (node.getColor() != null) {
+            colors.put(name, node.getColor());
+        }
+        Node gNode = g.getNode(name);
+        Color c = node.getColor();
+        //System.out.println(c);
+        if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
+            gNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
+            gNode.addAttribute("ui.label", rlabel);
+        } else if (PrintPaths2.this.cofactors.contains(r)) {
+            if (c == null) {
+                c = Color.pink;
+            }
+            String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+            //System.out.println(hex);
+            gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
+            gNode.addAttribute("ui.label", n);
+        } else {
+            Color color = setCompoundNodeColor(c, n);
+            String hex = "#" + Integer.toHexString(color.getRGB()).substring(2);
+            // System.out.println(hex);
+            gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+            gNode.addAttribute("ui.label", n);
+        }
+    }
+
     public ViewPanel printPathwayInFrame(final AntGraph graph) {
         this.g = new AdjacencyListGraph("");
         this.antGraph = graph;
@@ -99,37 +162,7 @@ public class PrintPaths2 implements KeyListener {
         nodes.stream().filter((node) -> (node != null)).forEachOrdered(new Consumer<AntNode>() {
             @Override
             public void accept(AntNode node) {
-                String name = node.getCompleteId();
-                String n = name.split(" - ")[0];
-                String r = name.split(" : ")[0];
-                String rlabel = r + " : " + PrintPaths2.this.dataset.getFlux(r);
-                g.addNode(name);
-                if (node.getColor() != null) {
-                    colors.put(name, node.getColor());
-                }
-                Node gNode = g.getNode(name);
-                Color c = node.getColor();
-                //System.out.println(c);
-                if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
-                    gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
-                    gNode.addAttribute("ui.label", rlabel);
-                } else if (PrintPaths2.this.cofactors.contains(r)) {
-                    if (c == null) {
-                        c = Color.pink;
-                    }
-                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                    //System.out.println(hex);
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
-                    gNode.addAttribute("ui.label", n);
-                } else {
-                    if (c == null) {
-                        c = Color.orange;
-                    }
-                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                    // System.out.println(hex);
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                    gNode.addAttribute("ui.label", n);
-                }
+                setColorToNode(node);
             }
         });
         edges.stream().filter((edge) -> (edge != null)).forEachOrdered((edge) -> {
@@ -414,7 +447,7 @@ public class PrintPaths2 implements KeyListener {
                 String rlabel = r + " : " + dataset.getFlux(r);
                 Color c = colors.get(sourceLine);
                 if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
-                    gNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
+                    gNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
                     gNode.addAttribute("ui.label", rlabel);
                 } else if (cofactors.contains(r)) {
                     if (c == null) {
@@ -425,10 +458,8 @@ public class PrintPaths2 implements KeyListener {
                     gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
                     gNode.addAttribute("ui.label", n);
                 } else {
-                    if (c == null) {
-                        c = Color.orange;
-                    }
-                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+                    Color color = setCompoundNodeColor(c, n);
+                    String hex = "#" + Integer.toHexString(color.getRGB()).substring(2);
                     // System.out.println(hex);
                     gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
                     gNode.addAttribute("ui.label", n);
@@ -592,12 +623,12 @@ public class PrintPaths2 implements KeyListener {
             String command = arg0.getActionCommand();
             if (command.equals("All")) {
                 if (!selectedNode.isEmpty()) {
-                    showReactions(selectedNode.get(0), null);
+                    showNewReactions(selectedNode.get(0), null);
                 }
             } else {
                 if (!selectedNode.isEmpty()) {
                     String reaction = command.split(" - ")[0];
-                    showReactions(selectedNode.get(0), reaction);
+                    showNewReactions(selectedNode.get(0), reaction);
                 }
             }
         }
@@ -712,16 +743,88 @@ public class PrintPaths2 implements KeyListener {
 
     private String isThere(String node) {
         for (Node v : this.g.getEachNode()) {
-            if (v.getId().contains(node)) {
+            System.out.println(v.getId() + " - " + node);
+            if (v.getId().split(" : ")[0].equals(node)) {
                 return v.getId();
             }
         }
         return null;
     }
 
-    private void showReactions(String initialStringNode, String reaction) {
+    private void setNodeAttributes(String vName, String spName, String compName) {
+        Node spNode = g.addNode(vName);
+        if (cofactors.contains(spName)) {
+            spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
+            spNode.addAttribute("ui.label", spName + " : " + compName);
+        } else {
+            Color c = setCompoundNodeColor(null, spName);
+            String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+            spNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
+            spNode.addAttribute("ui.label", spName + " : " + compName);
+        }
+    }
 
-        // Gets the selected model. It is the source model for the reactions
+    private void addEdges(Boolean reactant, String eName, String vName, String reactionName, boolean eType, AntNode reactionNode, AntNode n, boolean direction) {
+        if (reactant) {
+            g.addEdge(eName, vName, reactionName, eType);
+            antGraph.addEdge(new AntEdge(eName, n, reactionNode, direction));
+        } else {
+            g.addEdge(eName, reactionName, vName, eType);
+            antGraph.addEdge(new AntEdge(eName, reactionNode, n, direction));
+        }
+    }
+
+    private void addEdges(double lb, Boolean reactant, String eName, String vName, String reactionName, boolean eType, AntNode reactionNode, AntNode n, boolean direction) {
+        if (lb == 0) {
+            addEdges(reactant, eName, vName, reactionName, eType, reactionNode, n, direction);
+        } else {
+            addEdges(reactant, eName, reactionName, vName, eType, n, reactionNode, direction);
+        }
+    }
+
+    private void AddSpeciesInGraph(Boolean reactant, Model mInit, SpeciesReference sr, String spID, String reactionName, double lb, double ub, AntNode reactionNode, AntNode initNode, String initialStringNode) {
+
+        Boolean eType = Boolean.FALSE;
+        boolean direction = false;
+        if (lb == 0 || ub == 0) {
+            eType = Boolean.TRUE;
+            direction = true;
+        }
+        Species sps = mInit.getSpecies(sr.getSpecies());
+        String spName = sps.getId();
+        String nodeReactant;
+        if (cofactors.contains(spName)) {
+            nodeReactant = null;
+        } else {
+            nodeReactant = this.isThere(spName);
+        }
+        if (nodeReactant == null) {
+            if (!spName.equals(spID)) {
+                String vName = spName + " : " + sps.getName() + " - " + uniqueId.nextId();
+                String eName = spName + " - " + uniqueId.nextId();
+
+                setNodeAttributes(vName, spName, sps.getName());
+
+                //adds the node to the graph
+                AntNode n = new AntNode(vName);
+                antGraph.addNode(n);
+                addEdges(lb, reactant, eName, vName, reactionName, eType, reactionNode, n, direction);
+
+            } else {
+                String eName = initialStringNode + uniqueId.nextId();
+                addEdges(lb, reactant, eName, initialStringNode, reactionName, eType, reactionNode, initNode, direction);
+
+            }
+        } else {
+            AntNode reactantNode = antGraph.getNode(spName);
+            String eName = spName + " - " + uniqueId.nextId();
+            addEdges(lb, reactant, eName, nodeReactant, reactionName, eType, reactionNode, reactantNode, direction);
+        }
+    }
+
+    private void showNewReactions(String initialStringNode, String reaction) {
+
+        // Gets the selected model. It is the source model for the reactions to be added
         Dataset dInit = NDCore.getDesktop().getSelectedDataFiles()[0];
         Model mInit = dInit.getDocument().getModel();
         String spID = initialStringNode;
@@ -738,10 +841,11 @@ public class PrintPaths2 implements KeyListener {
         }
 
         for (Reaction r : mInit.getListOfReactions()) {
-
-            if (reaction != null && !reaction.contains(r.getId())) {
+            // System.out.println(reaction + " - " + r.getId());
+            if (reaction != null && !reaction.equals(r.getId())) {
                 continue;
             }
+
             if (r.getReactantForSpecies(sp.getId()) != null || r.getProductForSpecies(sp.getId()) != null) {
                 double lb = -1000;
                 double ub = 1000;
@@ -764,8 +868,6 @@ public class PrintPaths2 implements KeyListener {
                 }
 
                 //  String initSPName = sp.getId() + " : " + sp.getName() + " - " + uniqueId.nextId();
-                String initSPName = initialStringNode;
-
                 String gnode = this.isThere(r.getId());
 
                 // adds the rest of the compounds in the reaction, the direction of the edges 
@@ -780,135 +882,19 @@ public class PrintPaths2 implements KeyListener {
                     Node rNode = g.addNode(reactionName);
                     String rlabel = r.getId() + " : " + dataset.getFlux(r.getId());
 
-                    rNode.addAttribute("ui.style", "shape:box;fill-color:green;size: 25px;text-alignment: center;text-size:12px;");
+                    rNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
                     rNode.addAttribute("ui.label", rlabel);
 
                     // Creates the node for the ANT graph
                     AntNode reactionNode = new AntNode(reactionName);
                     antGraph.addNode(reactionNode);
 
-                    Boolean eType = Boolean.FALSE;
-                    boolean direction = false;
-                    if (lb == 0 || ub == 0) {
-                        eType = Boolean.TRUE;
-                        direction = true;
-                    }
-
                     for (SpeciesReference sr : r.getListOfReactants()) {
-                        Species sps = mInit.getSpecies(sr.getSpecies());
-                        String spName = sps.getId();
-                        String nodeReactant;
-                        if (cofactors.contains(spName)) {
-                            nodeReactant = null;
-                        } else {
-                            nodeReactant = this.isThere(spName);
-                        }
-                        if (nodeReactant == null) {
-                            if (!spName.equals(spID)) {
-                                String vName = spName + " : " + sps.getName() + " - " + uniqueId.nextId();
-                                String eName = spName + " - " + uniqueId.nextId();
-
-                                Node spNode = g.addNode(vName);
-                                if (cofactors.contains(spName)) {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", spName + " : " + sps.getName());
-                                } else {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", spName + " : " + sps.getName());
-                                }
-                                //adds the node to the graph
-                                AntNode n = new AntNode(vName);
-                                antGraph.addNode(n);
-                                if (lb == 0) {
-                                    g.addEdge(eName, vName, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(eName, n, reactionNode, direction));
-                                } else {
-                                    g.addEdge(eName, reactionName, vName, eType);
-                                    antGraph.addEdge(new AntEdge(eName, reactionNode, n, direction));
-                                }
-                            } else {
-                                if (lb == 0) {
-                                    String name = initSPName + uniqueId.nextId();
-                                    g.addEdge(name, initialStringNode, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(name, initNode, reactionNode, direction));
-                                } else {
-                                    String name = initSPName + uniqueId.nextId();
-                                    g.addEdge(name, reactionName, initialStringNode, eType);
-                                    antGraph.addEdge(new AntEdge(name, reactionNode, initNode, direction));
-                                }
-                            }
-                        } else {
-
-                            AntNode reactantNode = antGraph.getNode(spName);
-                            String eName = spName + " - " + uniqueId.nextId();
-                            if (lb == 0) {
-                                g.addEdge(eName, nodeReactant, reactionName, eType);
-                                antGraph.addEdge(new AntEdge(eName, reactantNode, reactionNode, direction));
-                            } else {
-                                g.addEdge(eName, reactionName, nodeReactant, eType);
-                                antGraph.addEdge(new AntEdge(eName, reactionNode, reactantNode, direction));
-                            }
-
-                        }
+                        AddSpeciesInGraph(Boolean.TRUE, mInit, sr, spID, reactionName, lb, ub, reactionNode, initNode, initialStringNode);
                     }
 
                     for (SpeciesReference sr : r.getListOfProducts()) {
-                        String spId = sr.getSpecies();
-                        Species sps = mInit.getSpecies(spId);
-                        String nodeProduct;
-                        if (cofactors.contains(spId)) {
-                            nodeProduct = null;
-                        } else {
-                            nodeProduct = this.isThere(spId);
-                        }
-
-                        if (nodeProduct == null) {
-
-                            if (!spId.equals(spID)) {
-                                String vName = spId + " : " + sps.getName() + " - " + uniqueId.nextId();
-                                String eName = spId + " - " + uniqueId.nextId();
-
-                                Node spNode = g.addNode(vName);
-                                if (cofactors.contains(spId)) {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-                                    spNode.addAttribute("ui.label", spId + " : " + sps.getName());
-                                } else {
-                                    spNode.addAttribute("ui.style", "shape:circle;fill-color:orange;size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                                    spNode.addAttribute("ui.label", spId + " : " + sps.getName());
-                                }
-                                //adds the node to the graph
-                                AntNode n = new AntNode(vName);
-                                antGraph.addNode(n);
-                                if (lb == 0) {
-                                    g.addEdge(eName, reactionName, vName, eType);
-                                    antGraph.addEdge(new AntEdge(eName, reactionNode, n, direction));
-                                } else {
-                                    g.addEdge(eName, vName, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(eName, n, reactionNode, direction));
-                                }
-                            } else {
-                                if (lb == 0) {
-                                    String eName = spId + " - " + uniqueId.nextId();
-                                    g.addEdge(eName, initialStringNode, reactionName, eType);
-                                    antGraph.addEdge(new AntEdge(eName, initNode, reactionNode, direction));
-
-                                } else {
-                                    String eName = spId + " - " + uniqueId.nextId();
-                                    g.addEdge(eName, reactionName, initialStringNode, eType);
-                                    antGraph.addEdge(new AntEdge(eName, reactionNode, initNode, direction));
-                                }
-                            }
-                        } else {
-                            AntNode productNode = antGraph.getNode(spId);
-                            String eName = spId + " - " + uniqueId.nextId();
-                            if (lb == 0) {
-                                g.addEdge(eName, reactionName, nodeProduct, eType);
-                                antGraph.addEdge(new AntEdge(eName, reactionNode, productNode, direction));
-                            } else {
-                                g.addEdge(eName, nodeProduct, reactionName, eType);
-                                antGraph.addEdge(new AntEdge(eName, productNode, reactionNode, direction));
-                            }
-                        }
+                        AddSpeciesInGraph(Boolean.FALSE, mInit, sr, spID, reactionName, lb, ub, reactionNode, initNode, initialStringNode);
                     }
                 }
             }
@@ -916,41 +902,35 @@ public class PrintPaths2 implements KeyListener {
 
     }
 
+    private void addSpecies(Reaction r, SpeciesReference sp, Model mInit) {
+        SpeciesReference spref = r.createReactant();
+        spref.setStoichiometry(sp.getStoichiometry());
+        if (m.getSpecies(sp.getSpecies()) != null) {
+            spref.setSpecies(sp.getSpecies());
+        } else {
+            Species specie = (Species) mInit.getSpecies(sp.getSpecies()).clone();
+            m.addSpecies(specie);
+            spref.setSpecies(sp.getSpecies());
+        }
+    }
+
     private void AddReaction(Reaction reaction) {
         Dataset datasetInit = NDCore.getDesktop().getSelectedDataFiles()[0];
         Model mInit = datasetInit.getDocument().getModel();
 
         Reaction r = new Reaction(reaction);
-        //r.setId(reaction.getId());
-        //r.setName(reaction.getName());
 
         reaction.getListOfReactants().forEach((sp) -> {
-            SpeciesReference spref = r.createReactant();
-            spref.setStoichiometry(sp.getStoichiometry());
-            if (m.getSpecies(sp.getSpecies()) != null) {
-                spref.setSpecies(sp.getSpecies());
-            } else {
-                Species specie = (Species) mInit.getSpecies(sp.getSpecies()).clone();
-                m.addSpecies(specie);
-                spref.setSpecies(sp.getSpecies());
-            }
+            addSpecies(r, sp, mInit);
         });
         reaction.getListOfProducts().forEach((sp) -> {
-            SpeciesReference spref = r.createProduct();
-            spref.setStoichiometry(sp.getStoichiometry());
-            if (m.getSpecies(sp.getSpecies()) != null) {
-                spref.setSpecies(sp.getSpecies());
-            } else {
-                Species specie = (Species) mInit.getSpecies(sp.getSpecies()).clone();
-                m.addSpecies(specie);
-                spref.setSpecies(sp.getSpecies());
-            }
+            addSpecies(r, sp, mInit);
         });
 
-        // r.appendNotes(reaction.getNotes());
         m.addReaction(reaction.clone());
         this.dataset.setLowerBound(r.getId(), datasetInit.getLowerBound(r.getId()));
         this.dataset.setUpperBound(r.getId(), datasetInit.getUpperBound(r.getId()));
+        this.dataset.setFlux(r.getId(), datasetInit.getFlux(r.getId()));
     }
 
 }
