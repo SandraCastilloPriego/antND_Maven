@@ -42,7 +42,7 @@ public abstract class Analysis {
             this.getSolver().addConstraint(sMatrix.get(i), conType, bValue);
         }
     }
-
+    
     protected ArrayList< Map< Integer, Double>> getSMatrix() {
         this.metabolitePositionMap = new HashMap<>();
         ArrayList< Map< Integer, Double>> sMatrix = new ArrayList<>(

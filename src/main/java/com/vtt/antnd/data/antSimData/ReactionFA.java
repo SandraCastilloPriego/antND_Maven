@@ -65,17 +65,26 @@ public class ReactionFA {
         this.path = new ArrayList<>();
         this.finalFlux = 0.0;
     }
+    
+    private void addCompound(ReactionFA newReaction, String compound){
+         newReaction.addReactant(compound, this.names.get(compound), this.getStoichiometry(compound));
+    }
 
+    /**
+     *
+     * @return
+     * @throws CloneNotSupportedException
+     */
     @Override
-    public ReactionFA clone() {
+    public ReactionFA clone() throws CloneNotSupportedException {
         ReactionFA newReaction = new ReactionFA(this.id, this.name);
         newReaction.setBounds(this.lb, this.ub);
-        for (String reactant : this.getReactants()) {
-            newReaction.addReactant(reactant, this.names.get(reactant), this.getStoichiometry(reactant));
-        }
-        for (String product : this.getProducts()) {
-            newReaction.addProduct(product, this.names.get(product), this.getStoichiometry(product));
-        }
+        this.getReactants().forEach((reactant) -> {
+            addCompound(newReaction, reactant);           
+        });
+        this.getProducts().forEach((product) -> {
+            addCompound(newReaction, product);
+        });
         return newReaction;
     }
 
@@ -216,28 +225,22 @@ public class ReactionFA {
 
     List<String> getSources(List<String> nodes) {
         List<String> sources = new ArrayList<>();
-        for (String node : nodes) {
-            if (this.reactants.contains(node) || this.products.contains(node)) {
-                sources.add(node);
-            }
-        }
+        nodes.stream().filter((node) -> (this.reactants.contains(node) || this.products.contains(node))).forEachOrdered((node) -> {
+            sources.add(node);
+        });
         return sources;
     }
 
     boolean hasSourcesInProducts(List<String> nodes) {
-        for (String node : nodes) {
-            if (this.products.contains(node)) {
-                return true;
-            }
+        if (nodes.stream().anyMatch((node) -> (this.products.contains(node)))) {
+            return true;
         }
         return false;
     }
 
     boolean hasSourcesInReactants(List<String> nodes) {
-        for (String node : nodes) {
-            if (this.reactants.contains(node)) {
-                return true;
-            }
+        if (nodes.stream().anyMatch((node) -> (this.reactants.contains(node)))) {
+            return true;
         }
         return false;
     }

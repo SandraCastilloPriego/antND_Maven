@@ -15,7 +15,9 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -174,8 +176,8 @@ public final class PushableTable implements DataTable, ActionListener {
                 String columnName = this.getTable().getColumnName(i);
                 if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
-                    Reaction reaction = m.getReaction(id);                   
-                    for (SpeciesReference spr:reaction.getListOfProducts()) {          
+                    Reaction reaction = m.getReaction(id);
+                    for (SpeciesReference spr : reaction.getListOfProducts()) {
                         Species sp = m.getSpecies(spr.getSpecies());
                         if (sp.getBoundaryCondition() == true) {
                             return true;
@@ -198,15 +200,15 @@ public final class PushableTable implements DataTable, ActionListener {
                 if (columnName.matches("Id")) {
                     String id = (String) this.getTable().getValueAt(row, i);
                     Reaction reaction = m.getReaction(id);
-                    
+
                     ArrayList compartReactants = new ArrayList<String>();
-                    for (SpeciesReference reactant:reaction.getListOfReactants()) {                   
+                    for (SpeciesReference reactant : reaction.getListOfReactants()) {
                         Species sp = m.getSpecies(reactant.getSpecies());
                         compartReactants.add(sp.getCompartment());
                     }
-          
+
                     ArrayList compartProducts = new ArrayList<String>();
-                    for (SpeciesReference product: reaction.getListOfProducts()) {                       
+                    for (SpeciesReference product : reaction.getListOfProducts()) {
                         Species sp = m.getSpecies(product.getSpecies());
                         compartProducts.add(sp.getCompartment());
                         if (sp.getBoundaryCondition() == true) {
@@ -225,11 +227,11 @@ public final class PushableTable implements DataTable, ActionListener {
                         }
                     }
 
-                    Set<String> uniqueCom = new HashSet<String>(compartReactants);
+                    Set<String> uniqueCom = new HashSet<>(compartReactants);
                     if (uniqueCom.size() > 1) {
                         return true;
                     }
-                    uniqueCom = new HashSet<String>(compartProducts);
+                    uniqueCom = new HashSet<>(compartProducts);
                     if (uniqueCom.size() > 1) {
                         return true;
                     }
@@ -246,6 +248,7 @@ public final class PushableTable implements DataTable, ActionListener {
      * keys..
      *
      */
+    @Override
     public void setTableProperties() {
 
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -255,7 +258,7 @@ public final class PushableTable implements DataTable, ActionListener {
         this.createTooltips();
 
         // Sorting
-        RowSorter<DataTableModel> sorter = new TableRowSorter<DataTableModel>(model);
+        RowSorter<DataTableModel> sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
         table.setUpdateSelectionOnSort(false);
 
@@ -294,6 +297,7 @@ public final class PushableTable implements DataTable, ActionListener {
      *
      * @param type Type of dataset @see guineu.data.DatasetType
      */
+    @Override
     public void formatNumbers(DatasetType type) {
         try {
             NumberFormat format = NumberFormat.getNumberInstance();
@@ -313,6 +317,7 @@ public final class PushableTable implements DataTable, ActionListener {
      *
      * @param column Column where the numbers will be formated
      */
+    @Override
     public void formatNumbers(int column) {
         NumberFormat format = NumberFormat.getNumberInstance();
         format.setMinimumFractionDigits(7);
@@ -338,12 +343,13 @@ public final class PushableTable implements DataTable, ActionListener {
         }
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         System.out.print(e.getActionCommand());
         // Sets the action of the key combinations
         // Copy
         if (e.getActionCommand().compareTo("Copy") == 0) {
-            StringBuffer sbf = new StringBuffer();
+            StringBuilder sbf = new StringBuilder();
             // Check to ensure we have selected only a contiguous block of
             // cells
             int numcols = table.getSelectedColumnCount();
@@ -387,7 +393,7 @@ public final class PushableTable implements DataTable, ActionListener {
                 StringTokenizer st2 = new StringTokenizer(rowstring, "\t");
                 newRegister = new register(startRow, rst1.countTokens() + 1, startCol, st2.countTokens());
                 newRegister.getValues();
-            } catch (Exception ex) {
+            } catch (UnsupportedFlavorException | IOException ex) {
                 Logger.getLogger(PushableTable.class.getName()).log(Level.SEVERE, null, ex);
             }
 
@@ -405,8 +411,7 @@ public final class PushableTable implements DataTable, ActionListener {
                         }
                     }
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (UnsupportedFlavorException | IOException ex) {
             }
 
             newRegister.getNewValues();
@@ -415,13 +420,13 @@ public final class PushableTable implements DataTable, ActionListener {
         }
 
         // Delete
-        if (e.getActionCommand().compareTo("Delete") == 0) {   
+        if (e.getActionCommand().compareTo("Delete") == 0) {
             int[] selectedRow = table.getSelectedRows();
             ArrayList<String> r = new ArrayList<>();
-            for (int i = 0; i < selectedRow.length; i++) {  
+            for (int i = 0; i < selectedRow.length; i++) {
                 r.add((String) table.getValueAt(selectedRow[i], 1));
-            }   
-            model.removeRows(r);           
+            }
+            model.removeRows(r);
         }
 
         // Undo
@@ -471,6 +476,22 @@ public final class PushableTable implements DataTable, ActionListener {
         System.gc();
     }
 
+    private void addNodeAndEdge(boolean reactant, SpeciesReference spr, AntGraph g, Model model, AntNode reactionNode, int direction) {
+        Species sp = model.getSpecies(spr.getSpecies());
+
+        AntNode spNode = g.getNode(sp.getId());
+        if (spNode == null) {
+            spNode = new AntNode(sp.getId(), sp.getName());
+        }
+        g.addNode2(spNode);
+        if (reactant) {
+            g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
+        } else {
+            g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
+        }
+
+    }
+
     public AntGraph getGraph(Model model, ArrayList<String> reactions) {
 
         java.util.List<AntNode> nodeList = new ArrayList<>();
@@ -490,40 +511,15 @@ public final class PushableTable implements DataTable, ActionListener {
 
                 g.addNode2(reactionNode);
                 int direction = this.getDirection(r);
+                
                 // read bounds to know the direction of the edges
-                // ListOf listOfReactants = r.getListOfReactants();
-                //System.out.println(listOfReactants.size());
-                //for (int e = 0; e < r.getNumReactants(); e++) {
-                //    SpeciesReference spr = (SpeciesReference) listOfReactants.get(e);
-                for (SpeciesReference spr : r.getListOfReactants()) {
-                    System.out.println(spr.getSpecies());
-                    Species sp = model.getSpecies(spr.getSpecies());
-                    System.out.println(sp.getName());
-                    AntNode spNode = g.getNode(sp.getId());
-                    if (spNode == null) {
-                        spNode = new AntNode(sp.getId(), sp.getName());
-                    }
-                    //this.setPosition(spNode, g);
-                    g.addNode2(spNode);
-                    g.addEdge(addEdge(spNode, reactionNode, sp.getId(), direction));
-
-                }
-
-                // ListOf listOfProducts = r.getListOfProducts();
-                //for (int e = 0; e < r.getNumProducts(); e++) {
-                //    SpeciesReference spr = (SpeciesReference) listOfProducts.get(e);
-                for (SpeciesReference spr : r.getListOfProducts()) {
-                    Species sp = model.getSpecies(spr.getSpecies());
-
-                    AntNode spNode = g.getNode(sp.getId());
-                    if (spNode == null) {
-                        spNode = new AntNode(sp.getId(), sp.getName());
-                    }
-                    //this.setPosition(spNode, g);
-                    g.addNode2(spNode);
-                    g.addEdge(addEdge(reactionNode, spNode, sp.getId(), direction));
-
-                }
+                r.getListOfReactants().forEach((spr) -> {
+                    addNodeAndEdge(true,  spr,  g,  model, reactionNode,  direction);
+                });
+      
+                r.getListOfProducts().forEach((spr) -> {
+                    addNodeAndEdge(false,  spr,  g,  model, reactionNode,  direction);
+                });
 
             }
         } catch (Exception e) {

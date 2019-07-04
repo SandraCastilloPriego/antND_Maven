@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.sbml.jsbml.Model;
 
 public abstract class Analysism {
@@ -129,14 +131,18 @@ public abstract class Analysism {
         for (String reaction : reactions.keySet()) {
             ReactionFA r = reactions.get(reaction);
             if (r.getlb() < 0 && r.getub() > 0) {
-                ReactionFA newR = r.clone();
-                newR.reverseReaction();
-                newR.setBounds(0, Math.abs(r.getlb()));
-                r.setBounds(0.0, r.getub());
-
-                this.reactionsList.add(newR);
-                this.reactionPositionMap.put(newR.getId(), i++);
-                this.objectiveList.add(1.0);
+                try {
+                    ReactionFA newR = r.clone();
+                    newR.reverseReaction();
+                    newR.setBounds(0, Math.abs(r.getlb()));
+                    r.setBounds(0.0, r.getub());
+                    
+                    this.reactionsList.add(newR);
+                    this.reactionPositionMap.put(newR.getId(), i++);
+                    this.objectiveList.add(1.0);
+                } catch (CloneNotSupportedException ex) {
+                    Logger.getLogger(Analysism.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
             }
          

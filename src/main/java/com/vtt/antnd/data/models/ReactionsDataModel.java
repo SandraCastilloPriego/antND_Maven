@@ -139,7 +139,7 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
                         notes = r.getNotesString();
                         return notes;
                     } catch (XMLStreamException ex) {
-                        Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
+                       // Logger.getLogger(ReactionsDataModel.class.getName()).log(Level.SEVERE, null, ex);
                     }
 
                 case "Objective":
@@ -276,21 +276,12 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
     private String getReactionNoExt(Reaction r) {
         String reaction = "";
-        //ListOf listOfReactants= r.getListOfReactants();
-        //for (int i = 0; i < r.getNumReactants(); i++) {
-        //    SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);   
-        for (SpeciesReference reactant : r.getListOfReactants()) {
-            reaction += reactant.getStoichiometry() + " " + reactant.getSpecies() + " + ";
-        }
+       
+        reaction = r.getListOfReactants().stream().map((reactant) -> reactant.getStoichiometry() + " " + reactant.getSpecies() + " + ").reduce(reaction, String::concat);
         reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         reaction += " <=> ";
-        if (r.getNumProducts() > 0) {
-            //ListOf listOfProducts= r.getListOfProducts();
-            //for (int i = 0; i < r.getNumProducts(); i++) {
-            //SpeciesReference product = (SpeciesReference) listOfProducts.get(i); 
-            for (SpeciesReference product : r.getListOfProducts()) {
-                reaction += product.getStoichiometry() + " " + product.getSpecies() + " + ";
-            }
+        if (r.getNumProducts() > 0) {           
+            reaction = r.getListOfProducts().stream().map((product) -> product.getStoichiometry() + " " + product.getSpecies() + " + ").reduce(reaction, String::concat);
             reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         }
         return reaction;
@@ -298,21 +289,11 @@ public class ReactionsDataModel extends AbstractTableModel implements DataTableM
 
     private Object getReactionExt(Reaction r, Model m) {
         String reaction = "";
-        /* ListOf listOfReactants= r.getListOfReactants();
-        for (int i = 0; i < r.getNumReactants(); i++) {
-            SpeciesReference reactant = (SpeciesReference) listOfReactants.get(i);  */
-        for (SpeciesReference reactant : r.getListOfReactants()) {
-            reaction += reactant.getStoichiometry() + " " + m.getSpecies(reactant.getSpecies()).getName() + " + ";
-        }
+        reaction = r.getListOfReactants().stream().map((reactant) -> reactant.getStoichiometry() + " " + m.getSpecies(reactant.getSpecies()).getName() + " + ").reduce(reaction, String::concat);
         reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         reaction += " <=> ";
-        if (r.getNumProducts() > 0) {
-            //ListOf listOfProducts= r.getListOfProducts();
-            // for (int i = 0; i < r.getNumProducts(); i++) {
-            // SpeciesReference product = (SpeciesReference) listOfProducts.get(i);  
-            for (SpeciesReference product : r.getListOfProducts()) {
-                reaction += product.getStoichiometry() + " " + m.getSpecies(product.getSpecies()).getName() + " + ";
-            }
+        if (r.getNumProducts() > 0) {            
+            reaction = r.getListOfProducts().stream().map((product) -> product.getStoichiometry() + " " + m.getSpecies(product.getSpecies()).getName() + " + ").reduce(reaction, String::concat);
             reaction = reaction.substring(0, reaction.lastIndexOf(" + "));
         }
         return reaction;

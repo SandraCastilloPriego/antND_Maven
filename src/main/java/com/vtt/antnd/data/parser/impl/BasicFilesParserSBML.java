@@ -71,9 +71,7 @@ public class BasicFilesParserSBML implements Parser {
             if (document.getNumErrors() > 0) {                
                 System.exit(1);
             }
-        } catch (XMLStreamException ex) {
-            Logger.getLogger(BasicFilesParserSBML.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
+        } catch (XMLStreamException | IOException ex) {
             Logger.getLogger(BasicFilesParserSBML.class.getName()).log(Level.SEVERE, null, ex);
         }
 

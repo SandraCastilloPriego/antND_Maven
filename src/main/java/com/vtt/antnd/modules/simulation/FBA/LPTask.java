@@ -36,9 +36,6 @@ import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
-import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
-import org.sbml.jsbml.ext.fbc.FluxObjective;
-import org.sbml.jsbml.ext.fbc.Objective;
 
 /**
  *
@@ -48,7 +45,6 @@ public class LPTask extends AbstractTask {
 
     private final SimpleBasicDataset networkDS;
     private double finishedPercentage = 0.0f;
-    //  private final String objectiveSpecie;
 
     private final GetInfoAndTools tools;
     private Double objective;
@@ -56,8 +52,7 @@ public class LPTask extends AbstractTask {
     private HashMap<String, ReactionFA> reactions;
 
     public LPTask(SimpleBasicDataset dataset, SimpleParameterSet parameters) {
-        this.networkDS = dataset;
-        // this.objectiveSpecie = parameters.getParameter(LPParameters.objective).getValue();
+        this.networkDS = dataset;       
         this.tools = new GetInfoAndTools();
 
     }
@@ -119,48 +114,30 @@ public class LPTask extends AbstractTask {
 
     }
 
+    private void addNodesAndEdges(ListOf<SpeciesReference> speciesRef, AntGraph g, AntNode reactionNode, String reactionId) {
+        for (SpeciesReference reactant : speciesRef) {
+            Species species = reactant.getSpeciesInstance();
+            AntNode reactantNode = g.getNode(species.getId());
+            if (reactantNode == null) {
+                reactantNode = new AntNode(species.getId(), species.getName());
+            }
+            g.addNode2(reactantNode);
+            AntEdge e = null;
+            e = new AntEdge(reactionId + " - " + uniqueId.nextId(), reactantNode, reactionNode);
+            g.addEdge(e);
+        }
+    }
+
     private AntGraph createGraph() {
         Model m = this.networkDS.getDocument().getModel();
         AntGraph g = new AntGraph(null, null);
-        for (Reaction r : m.getListOfReactions()) {           
-            if (this.networkDS.getFlux(r.getId()) > 0.0000001) {
-                AntNode reactionNode = new AntNode(r.getId(), String.format("%.3g%n", this.networkDS.getFlux(r.getId())));
-                g.addNode2(reactionNode);
-
-                for (SpeciesReference reactant : r.getListOfReactants()) {
-                    Species species = reactant.getSpeciesInstance();
-                    AntNode reactantNode = g.getNode(species.getId());
-                    if (reactantNode == null) {
-                        reactantNode = new AntNode(species.getId(), species.getName());
-                    }
-                    g.addNode2(reactantNode);
-                    AntEdge e = null;
-                    //if (this.networkDS.getFlux(r.getId())  > 0.0001) {
-                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
-                    /*} else {
-                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
-                    }*/
-
-                    g.addEdge(e);
-                }
-                for (SpeciesReference product : r.getListOfProducts()) {
-                    Species species = product.getSpeciesInstance();
-                    AntNode reactantNode = g.getNode(species.getId());
-                    if (reactantNode == null) {
-                        reactantNode = new AntNode(species.getId(), species.getName());
-                    }
-                    g.addNode2(reactantNode);
-                    AntEdge e = null;
-                   // if (this.networkDS.getFlux(r.getId()) > 0.0001) {
-                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactionNode, reactantNode);
-                    /*} else {
-                        e = new AntEdge(r + " - " + uniqueId.nextId(), reactantNode, reactionNode);
-                    }*/
-
-                    g.addEdge(e);
-                }
-            }
-        }
+        m.getListOfReactions().stream().filter((r) -> (this.networkDS.getFlux(r.getId()) > 0.0000001)).forEachOrdered((r) -> {
+            AntNode reactionNode = new AntNode(r.getId(), String.format("%.3g%n", this.networkDS.getFlux(r.getId())));
+            g.addNode2(reactionNode);
+            
+            addNodesAndEdges(r.getListOfReactants(), g, reactionNode, r.getId());
+            addNodesAndEdges(r.getListOfProducts(), g, reactionNode, r.getId());
+        });
         return g;
     }
 
@@ -169,35 +146,31 @@ public class LPTask extends AbstractTask {
         fba.setModel(this.reactions, this.networkDS.getDocument().getModel());
         try {
             Map<String, Double> soln = fba.run();
-            for (String r : soln.keySet()) {
-                if (this.reactions.containsKey(r)) {
-                    double flux =soln.get(r);
-                    if(flux < 0.000001)
-                        flux = 0.0;
-                    this.reactions.get(r).setFlux(flux);
-                    this.networkDS.setFlux(r, flux);
+            soln.keySet().stream().filter((r) -> (this.reactions.containsKey(r))).forEachOrdered((r) -> {
+                double flux = soln.get(r);
+                if (flux < 0.000001) {
+                    flux = 0.0;
                 }
-            }
+                this.reactions.get(r).setFlux(flux);
+                this.networkDS.setFlux(r, flux);
+            });
         } catch (Exception ex) {
             System.out.println(ex);
         }
         return fba.getMaxObj();
     }
 
-    private double getObjectiveFBC(String r, Model model) {
-        try {
-            FBCModelPlugin plugin = (FBCModelPlugin) model.getPlugin("fbc");
-            for (Objective obj : plugin.getListOfObjectives()) {
-                for (FluxObjective fobj : obj.getListOfFluxObjectives()) {
-                    if (fobj.getReaction().equals(r)) {
-                        return fobj.getCoefficient();
-                    }
-                }
+    private void addCompoundToReaction(boolean isReactant, ListOf<SpeciesReference> spref, ReactionFA reaction, Model m) {
+        for (int e = 0; e < spref.size(); e++) {
+            SpeciesReference s = (SpeciesReference) spref.get(e);
+            Species sp = m.getSpecies(s.getSpecies());
+            if (isReactant) {
+                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
+            } else {
+                reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
             }
-        } catch (NullPointerException n) {
-            return 0.0;
         }
-        return 0.0;
+
     }
 
     private void createReactions() {
@@ -215,29 +188,19 @@ public class LPTask extends AbstractTask {
             reaction.setObjective(this.networkDS.getObjective(r.getId()));
             reaction.setBounds(this.networkDS.getLowerBound(r.getId()), this.networkDS.getUpperBound(r.getId()));
             ListOf spref = r.getListOfReactants();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
-                Species sp = m.getSpecies(s.getSpecies());
-                reaction.addReactant(sp.getId(), sp.getName(), s.getStoichiometry());
-                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
-            }
+            addCompoundToReaction(true, spref, reaction, m);
 
             spref = r.getListOfProducts();
-            for (int e = 0; e < spref.size(); e++) {
-                SpeciesReference s = (SpeciesReference) spref.get(e);
-                Species sp = m.getSpecies(s.getSpecies());
-                reaction.addProduct(sp.getId(), sp.getName(), s.getStoichiometry());
-                // System.out.println(sp.getId() + " - "+ sp.getName() + " - "+ s.getStoichiometry());
-            }
+            addCompoundToReaction(false, spref, reaction, m);
 
             this.reactions.put(r.getId(), reaction);
         }
     }
 
     private void setFluxes(Dataset newDataset) {
-        for (String reaction : this.reactions.keySet()) {
+        this.reactions.keySet().forEach((reaction) -> {
             newDataset.setFlux(reaction, this.reactions.get(reaction).getFlux());
-        }
+        });
     }
 
 }

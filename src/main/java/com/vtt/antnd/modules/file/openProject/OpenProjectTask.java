@@ -17,7 +17,6 @@
  */
 package com.vtt.antnd.modules.file.openProject;
 
-
 import com.vtt.antnd.data.Dataset;
 import com.vtt.antnd.data.antSimData.Ant;
 import com.vtt.antnd.data.antSimData.SpeciesFA;
@@ -80,7 +79,7 @@ public class OpenProjectTask extends AbstractTask {
     public void run() {
         try {
             setStatus(TaskStatus.PROCESSING);
-            try (ZipFile zipFile = new ZipFile(fileDir)) {
+            try ( ZipFile zipFile = new ZipFile(fileDir)) {
                 loadSBMLFiles(zipFile);
                 finishedPercentage = 0.5f;
                 loadInfo(zipFile);
@@ -98,7 +97,7 @@ public class OpenProjectTask extends AbstractTask {
     private void loadSBMLFiles(ZipFile zipFile) throws IOException {
         Enumeration zipEntries = zipFile.entries();
         Pattern filePattern = Pattern
-            .compile("(.*)\\.sbml$|(.*)\\.xml$");
+                .compile("(.*)\\.sbml$|(.*)\\.xml$");
         while (zipEntries.hasMoreElements()) {
             if (isCanceled()) {
                 return;
@@ -110,7 +109,7 @@ public class OpenProjectTask extends AbstractTask {
             if (fileMatcher.matches()) {
                 InputStream sbmlStream = zipFile.getInputStream(entry);
                 File tempFile = File.createTempFile(entryName, ".tmp");
-                try (FileOutputStream fileStream = new FileOutputStream(tempFile)) {
+                try ( FileOutputStream fileStream = new FileOutputStream(tempFile)) {
                     StreamCopy copyMachine = new StreamCopy();
                     copyMachine.copy(sbmlStream, fileStream);
                     Parser parser = new BasicFilesParserSBML(tempFile.getAbsolutePath());
@@ -129,7 +128,7 @@ public class OpenProjectTask extends AbstractTask {
     private void loadInfo(ZipFile zipFile) throws IOException {
         Enumeration zipEntries = zipFile.entries();
         Pattern filePattern = Pattern
-            .compile("(.*)\\.info$");
+                .compile("(.*)\\.info$");
         while (zipEntries.hasMoreElements()) {
             if (isCanceled()) {
                 return;
@@ -148,21 +147,26 @@ public class OpenProjectTask extends AbstractTask {
                     String strLine;
                     AntGraph g = null;
                     while ((strLine = br.readLine()) != null) {
-                        if(strLine.contains("Fluxes=")){
+                        if (strLine.contains("Fluxes=")) {
                             String fluxes = strLine.split("=")[1];
-                            String name = null;                           
+                            String name = null;
                             if (fluxes.contains(" // ")) {
                                 String[] properties = fluxes.split(" // ");
                                 name = properties[0];
                                 String flux = properties[1];
-                                data.setFlux(name, Double.valueOf(flux));
+                                try {
+                                    data.setFlux(name, Double.valueOf(flux));
+                                } catch (Exception e) {
+
+                                    data.setFlux(name, 0.0);
+                                }
                             }
-                            
-                        }else if (strLine.contains("Is Parent")) {
+
+                        } else if (strLine.contains("Is Parent")) {
                             data.setIsParent(true);
                         } else if (strLine.contains("Not Parent")) {
                             data.setIsParent(false);
-                            data.setParent(strLine.substring(strLine.indexOf("Not Parent: ")+12));
+                            data.setParent(strLine.substring(strLine.indexOf("Not Parent: ") + 12));
                         } else if (strLine.contains("Biomass= ")) {
                             //data.setBiomass(strLine.split("= ")[1]);
                         } else if (strLine.contains("Sources= ")) {
@@ -172,11 +176,11 @@ public class OpenProjectTask extends AbstractTask {
                                 g = new AntGraph(null, null);
                             }
                             String nodeName = strLine.split("= ")[1];
-                            String position = null;                           
+                            String position = null;
                             if (nodeName.contains(" // ")) {
                                 String[] properties = nodeName.split(" // ");
                                 position = properties[1];
-                                nodeName = properties[0];                               
+                                nodeName = properties[0];
                             }
                             String id = nodeName.split(" : ")[0];
                             String name = "";
@@ -189,7 +193,7 @@ public class OpenProjectTask extends AbstractTask {
                                 String[] point = position.split(" , ");
                                 n.setPosition(Double.valueOf(point[0]), Double.valueOf(point[1]));
                             }
-                            
+
                             g.addNode(n);
 
                         } else if (strLine.contains("Edges= ")) {
@@ -215,7 +219,7 @@ public class OpenProjectTask extends AbstractTask {
     private void loadPaths(ZipFile zipFile) throws IOException {
         Enumeration zipEntries = zipFile.entries();
         Pattern filePattern = Pattern
-            .compile("(.*)\\.paths$");
+                .compile("(.*)\\.paths$");
         while (zipEntries.hasMoreElements()) {
             if (isCanceled()) {
                 return;
