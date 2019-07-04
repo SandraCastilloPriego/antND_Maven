@@ -120,6 +120,29 @@ public class PrintPaths2 implements KeyListener {
         return c;
     }
 
+    private void setNodeAttributes(Node gNode, String n, String hex, String nodeSize, String textSize) {
+        gNode.addAttribute("ui.style", "shape:box;fill-color:" + hex + ";size: " + nodeSize + "px;text-alignment: center;text-size:" + textSize + "px;");
+        gNode.addAttribute("ui.label", n);
+    }
+
+    private void setColorToNode(Node gNode, Color c, String name, String n, String r, String rlabel) {
+        if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
+            setNodeAttributes(gNode, rlabel, "#66bd63", "25", "12");
+        } else if (PrintPaths2.this.cofactors.contains(r)) {
+            if (c == null) {
+                c = Color.pink;
+            }
+            String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
+            //System.out.println(hex);
+            setNodeAttributes(gNode, n, hex, "10", "10");
+        } else {
+            Color color = setCompoundNodeColor(c, n);
+            String hex = "#" + Integer.toHexString(color.getRGB()).substring(2);
+            // System.out.println(hex);
+            setNodeAttributes(gNode, n, hex, "25", "18");
+        }
+    }
+
     private void setColorToNode(AntNode node) {
         String name = node.getCompleteId();
         String n = name.split(" - ")[0];
@@ -131,29 +154,12 @@ public class PrintPaths2 implements KeyListener {
         }
         Node gNode = g.getNode(name);
         Color c = node.getColor();
-        //System.out.println(c);
-        if (m.getReaction(r.trim()) != null || m.getReaction(name.trim()) != null) {
-            gNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
-            gNode.addAttribute("ui.label", rlabel);
-        } else if (PrintPaths2.this.cofactors.contains(r)) {
-            if (c == null) {
-                c = Color.pink;
-            }
-            String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-            //System.out.println(hex);
-            gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
-            gNode.addAttribute("ui.label", n);
-        } else {
-            Color color = setCompoundNodeColor(c, n);
-            String hex = "#" + Integer.toHexString(color.getRGB()).substring(2);
-            // System.out.println(hex);
-            gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-            gNode.addAttribute("ui.label", n);
-        }
+
+        setColorToNode(gNode, c, name, n, r, rlabel);
     }
 
     public ViewPanel printPathwayInFrame(final AntGraph graph) {
-        this.g = new AdjacencyListGraph("");
+        this.g = new AdjacencyListGraph("", false,false,10000, 10000);
         this.antGraph = graph;
         List<AntNode> nodes = graph.getNodes();
         List<AntEdge> edges = graph.getEdges();
@@ -242,7 +248,7 @@ public class PrintPaths2 implements KeyListener {
             writer.println("\t\tgraphics\n\t\t[");
 
             //Position
-            String gnodestr = isThere(node.getId());
+            String gnodestr = isThere2(node.getId());
             GraphicNode n = viewer.getGraphicGraph().getNode(gnodestr);
             double x = n.getX();
             double y = n.getY();
@@ -396,6 +402,11 @@ public class PrintPaths2 implements KeyListener {
             }
         }
 
+        public void setInfo(SpeciesReference sr, StringBuffer info) {
+            Species sp = m.getSpecies(sr.getSpecies());
+            info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
+        }
+
         public String data(String name) {
             Dataset dInit = NDCore.getDesktop().getSelectedDataFiles()[0];
             StringBuffer info;
@@ -410,13 +421,11 @@ public class PrintPaths2 implements KeyListener {
 
                 info.append("Reactants: \n");
                 reaction.getListOfReactants().forEach((sr) -> {
-                    Species sp = m.getSpecies(sr.getSpecies());
-                    info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append("\n");
+                    setInfo(sr, info);
                 });
                 info.append("Products: \n");
                 reaction.getListOfProducts().forEach((sr) -> {
-                    Species sp = m.getSpecies(sr.getSpecies());
-                    info.append(sr.getStoichiometry()).append(" ").append(sp.getId()).append(" - ").append(sp.getName()).append(" \n");
+                    setInfo(sr, info);
                 });
             } else {
                 Species sp = m.getSpecies(name);
@@ -446,29 +455,17 @@ public class PrintPaths2 implements KeyListener {
                 String r = sourceLine.split(" : ")[0];
                 String rlabel = r + " : " + dataset.getFlux(r);
                 Color c = colors.get(sourceLine);
-                if (m.getReaction(r.trim()) != null || m.getReaction(n.trim()) != null) {
-                    gNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
-                    gNode.addAttribute("ui.label", rlabel);
-                } else if (cofactors.contains(r)) {
-                    if (c == null) {
-                        c = Color.pink;
-                    }
-                    String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-                    //  System.out.println(hex);
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 10px;text-alignment: center;text-size:10px;");
-                    gNode.addAttribute("ui.label", n);
-                } else {
-                    Color color = setCompoundNodeColor(c, n);
-                    String hex = "#" + Integer.toHexString(color.getRGB()).substring(2);
-                    // System.out.println(hex);
-                    gNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-                    gNode.addAttribute("ui.label", n);
-
-                }
+                setColorToNode(gNode, c, sourceLine, n, r, rlabel);
             }
 
         }
-
+        
+        private void fixAllNodes(){            
+            for (Node gNode : displayedGraph.getEachNode()) {
+                gNode.addAttribute("layout.frozen");
+            }
+        }
+        
         @Override
         public void mousePressed(MouseEvent e) {
             curElement = view.findNodeOrSpriteAt(e.getX(), e.getY());
@@ -484,7 +481,7 @@ public class PrintPaths2 implements KeyListener {
                     node.addAttribute("ui.style", "shape:circle;fill-color:red;size: 25px;text-alignment: center;");
 
                     if (e.isPopupTrigger()) {
-
+                        fixAllNodes();
                         popupMenu = new JPopupMenu();
                         Model mInit;
                         try {
@@ -563,11 +560,11 @@ public class PrintPaths2 implements KeyListener {
                 if (curElement != null) {
                     elementMoving(curElement, e);
                 }
-                Point3 currentPoint = point3(e.getPoint());
-                double xDelta = (currentPoint.x - previousPoint.x) / 1.5;
-                double yDelta = (currentPoint.y - previousPoint.y) / 1.5;
-                pan(xDelta, yDelta);
-                previousPoint = currentPoint;
+                //Point3 currentPoint = point3(e.getPoint());
+                //double xDelta = (currentPoint.x - previousPoint.x) / 1.5;
+               // double yDelta = (currentPoint.y - previousPoint.y) / 1.5;
+                //pan(xDelta, yDelta);
+                //previousPoint = currentPoint;
             } else {
                 if (curElement != null) {
                     elementMoving(curElement, e);
@@ -677,7 +674,7 @@ public class PrintPaths2 implements KeyListener {
             });
         }
         if (e.getKeyChar() == 's') {
-            this.g.addAttribute("ui.screenshot", "/home/scsandra/Downloads/screenshot.png");
+            this.g.addAttribute("ui.screenshot", "screenshot.png");
         }
 
         if (e.getKeyChar() == 'c') {
@@ -741,10 +738,18 @@ public class PrintPaths2 implements KeyListener {
     public void keyReleased(KeyEvent arg0) {
     }
 
-    private String isThere(String node) {
-        for (Node v : this.g.getEachNode()) {
-            System.out.println(v.getId() + " - " + node);
+     private String isThere(String node) {
+        for (Node v : this.g.getEachNode()) {           
             if (v.getId().split(" : ")[0].equals(node)) {
+                return v.getId();
+            }
+        }
+        return null;
+    }
+    
+   private String isThere2(String node) {
+        for (Node v : this.g.getEachNode()) {
+            if (v.getId().contains(node)) {
                 return v.getId();
             }
         }
@@ -754,13 +759,11 @@ public class PrintPaths2 implements KeyListener {
     private void setNodeAttributes(String vName, String spName, String compName) {
         Node spNode = g.addNode(vName);
         if (cofactors.contains(spName)) {
-            spNode.addAttribute("ui.style", "shape:circle;fill-color:pink;size: 10px;text-alignment: center;text-size:10px;");
-            spNode.addAttribute("ui.label", spName + " : " + compName);
+            setNodeAttributes(spNode, spName + " : " + compName, "pink", "10", "10");
         } else {
             Color c = setCompoundNodeColor(null, spName);
             String hex = "#" + Integer.toHexString(c.getRGB()).substring(2);
-            spNode.addAttribute("ui.style", "shape:circle;fill-color:" + hex + ";size: 25px;text-alignment: center;text-size:18px;text-style:bold;");
-            spNode.addAttribute("ui.label", spName + " : " + compName);
+            setNodeAttributes(spNode, spName + " : " + compName, hex, "25", "18");
         }
     }
 
@@ -881,9 +884,7 @@ public class PrintPaths2 implements KeyListener {
                     // adds the new reaction to the visualization graph
                     Node rNode = g.addNode(reactionName);
                     String rlabel = r.getId() + " : " + dataset.getFlux(r.getId());
-
-                    rNode.addAttribute("ui.style", "shape:box;fill-color:#66bd63;size: 25px;text-alignment: center;text-size:12px;");
-                    rNode.addAttribute("ui.label", rlabel);
+                    setNodeAttributes(rNode, rlabel, "#66bd63", "25", "12");
 
                     // Creates the node for the ANT graph
                     AntNode reactionNode = new AntNode(reactionName);
